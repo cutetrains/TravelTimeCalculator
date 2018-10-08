@@ -24,9 +24,10 @@ tools:context="com.example.gusta.TravelTimeCalculator.MapsActivity" >
     android:layout_height="wrap_content"
     class="com.google.android.gms.maps.SupportMapFragment"/>
 
-    <Button
-        android:layout_width="96dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:text="@string/scan_directions" />
+<Button
+    android:id="@+id/scan_button"
+    android:layout_width="120dp"
+    android:layout_height="wrap_content"
+    android:layout_alignParentRight="true"
+    android:text="@string/scan_directions" />
 </RelativeLayout>

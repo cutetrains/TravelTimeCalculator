@@ -8,8 +8,10 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.widget.Button;
+import android.view.View;
 
-import com.example.gusta.TravelTimeCalculator.R;
+//import com.example.gusta.TravelTimeCalculator.R;
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.PlaceDetectionClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -33,6 +35,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final LatLng mDefaultLocation = new LatLng(56, 13);
     private static final int DEFAULT_ZOOM = 15;
 
+
+
     // The entry points to the Places API.
     private GeoDataClient mGeoDataClient;
     private PlaceDetectionClient mPlaceDetectionClient;
@@ -41,12 +45,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Location mLastKnownLocation;
 
+    DBHelper mydb;
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        mydb = new DBHelper(this);
+        Log.d("GustafTag",  "Create DB");
+        Log.d("GustafTag",  mydb.getDatabaseName());
+        final Button button = findViewById(R.id.scan_button);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Code here executes on main thread after user presses button
+                Log.e("GustafTag", "Button Tapped!");
+            }
+        });
 
         // Construct a GeoDataClient.
         mGeoDataClient = Places.getGeoDataClient(this);
