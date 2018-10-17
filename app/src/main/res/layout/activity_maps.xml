@@ -12,10 +12,6 @@
 xmlns:tools="http://schemas.android.com/tools"
 android:layout_width="match_parent"
 android:layout_height="match_parent"
-android:paddingBottom="10dp"
-android:paddingLeft="10dp"
-android:paddingRight="10dp"
-android:paddingTop="10dp"
 tools:context="com.example.gusta.TravelTimeCalculator.MapsActivity" >
 
 <fragment
@@ -26,8 +22,11 @@ tools:context="com.example.gusta.TravelTimeCalculator.MapsActivity" >
 
 <Button
     android:id="@+id/scan_button"
-    android:layout_width="120dp"
+    android:layout_width="80dp"
     android:layout_height="wrap_content"
     android:layout_alignParentRight="true"
+    android:layout_alignParentBottom="true"
     android:text="@string/scan_directions" />
+
+
 </RelativeLayout>

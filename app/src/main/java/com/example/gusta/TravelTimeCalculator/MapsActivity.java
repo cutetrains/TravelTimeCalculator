@@ -58,10 +58,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Log.d("GustafTag",  "Create DB");
         Log.d("GustafTag",  mydb.getDatabaseName());
         final Button button = findViewById(R.id.scan_button);
+        //TODO: Rename button to "`scanButton"
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Code here executes on main thread after user presses button
-                Log.e("GustafTag", "Button Tapped!");
+                Log.d("GustafTag", "Button Tapped!");
+                LatLng cameraTarget = mMap.getCameraPosition().target;
+                double lat = cameraTarget.latitude;
+                double lon = cameraTarget.longitude;
+                Log.d("GustafTag", String.valueOf(lat));
+                Log.d("GustafTag", String.valueOf(lon));
+                if(cameraTarget == null){
+                    Log.d("GustafTag","cameraTarget is null");
+                } else {
+                    Log.d("GustafTag","cameraTarget is not null");
+                    getDirections(cameraTarget);
+                }
             }
         });
 
@@ -169,28 +181,51 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         updateLocationUI();
     }
 
-    private void getDirections() {
-        /*
-         * The location is rounded to three decimals by multiplying the coordinates by 1000 and
-         * converting to integer. Rounding a float will give unpredictable numerical side effects.
-         *
-          */
+    /*
+     * The location is rounded to three decimals by multiplying the coordinates by 1000 and
+     * converting to integer. Rounding a float will give unpredictable numerical side effects.
+     *
+     */
+    private void getDirections(LatLng cameraCoordinates){
+        StringBuilder sb;
+        sb = new StringBuilder();
+        String logSb;
 
-        //Rounded location.
-        int mLastKnownLocationRoundedLat = (int) (mLastKnownLocation.getLatitude() * 1000);
-        int mLastKnownLocationRoundedLon = (int) (mLastKnownLocation.getLongitude() * 1000);
-        Log.e("GustafTag",
-                "W : " + (mLastKnownLocationRoundedLat +1) + "/" + (mLastKnownLocationRoundedLon - 1)+
-                        " C : " + (mLastKnownLocationRoundedLat +1) + "/" + mLastKnownLocationRoundedLon +
-                        " E : " + (mLastKnownLocationRoundedLat +1) + "/" + (mLastKnownLocationRoundedLon +1));
-        Log.e("GustafTag",
-                "W : " + mLastKnownLocationRoundedLat + "/" + (mLastKnownLocationRoundedLon - 1)+
-                        " C : " + mLastKnownLocationRoundedLat + "/" + mLastKnownLocationRoundedLon +
-                        " E : " + mLastKnownLocationRoundedLat + "/" + (mLastKnownLocationRoundedLon +1));
-        Log.e("GustafTag",
-                "W : " + (mLastKnownLocationRoundedLat -1) + "/" + (mLastKnownLocationRoundedLon - 1)+
-                        " C : " + (mLastKnownLocationRoundedLat -1) + "/" + mLastKnownLocationRoundedLon +
-                        " E : " + (mLastKnownLocationRoundedLat -1) + "/" + (mLastKnownLocationRoundedLon +1));
+        String apiKey = BuildConfig.DirectionsApiKey;
+        String url;
+        int roundedLat = (int) (cameraCoordinates.latitude * 1000);
+        int roundedLon = (int) (cameraCoordinates.longitude * 1000);
+
+        if(cameraCoordinates == null){
+            Log.d("GustafTag", "Null coordinates");
+        } else {
+            //Rounded location.
+
+            Log.e("GustafTag",
+                    "W : " + (roundedLat + 1) + "/" + (roundedLon - 1) +
+                            " C : " + (roundedLat + 1) + "/" + roundedLon +
+                            " E : " + (roundedLat + 1) + "/" + (roundedLon + 1));
+            Log.e("GustafTag",
+                    "W : " + roundedLat + "/" + (roundedLon - 1) +
+                            " C : " + roundedLat + "/" + roundedLon +
+                            " E : " + roundedLat + "/" + (roundedLon + 1));
+            Log.e("GustafTag",
+                    "W : " + (roundedLat - 1) + "/" + (roundedLon - 1) +
+                            " C : " + (roundedLat - 1) + "/" + roundedLon +
+                            " E : " + (roundedLat - 1) + "/" + (roundedLon + 1));
+        }
+        sb.append("https://maps.googleapis.com/maps/api/directions/json");
+        sb.append("?origin=" + (float)(roundedLat-10)/1000+","+(float)(roundedLon)/1000);
+        sb.append("&destination=" + (float)(roundedLat)/1000+","+(float)(roundedLon)/1000);
+        sb.append("&mode=bicycling");
+        sb.append("&key="+apiKey);
+        //sb.append("&key="+"AIzaSyBsCdbDkCMHDwRLkQTrdAU4eqvaf91VGvE");
+        logSb = sb.toString();
+        Log.d("GustafTag", logSb);
+    }
+
+    private void readDirections(String jsonData){
+        Log.d("GustafTag",  "Interpreting the response");
     }
 
     private void getDeviceLocation() {
@@ -207,16 +242,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         if (task.isSuccessful()) {
                             mLastKnownLocation = task.getResult();
                             if (mLastKnownLocation == null){
-                                Log.d("GustafTag", "mLastKnownLocation is  null");//THIS IS CAUSING CRASH! WHY ISN*T THAT POPULATED?
+                                Log.e("GustafTag", "mLastKnownLocation is  null");//THIS IS CAUSING CRASH! WHY ISN*T THAT POPULATED?
                             } else {
-                                Log.d("GustafTag", " C : "  + mLastKnownLocation.getLatitude() + "");
-                                Log.d("GustafTag", " C : "  + mLastKnownLocation.getLongitude() + "");
-                                
                                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                         new LatLng(mLastKnownLocation.getLatitude(),
                                                 mLastKnownLocation.getLongitude()), DEFAULT_ZOOM));
-
-                                getDirections();
                             }
                         } else {
                             //Log.d(TAG, "Current location is null. Using defaults.");

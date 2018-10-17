@@ -11,12 +11,22 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField 'String', "DirectionsApiKey", TravelTimeCalculator_GoogleDirectionsApiKey
+            resValue 'string', "directions_api_key", TravelTimeCalculator_GoogleDirectionsApiKey
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField 'String', "DirectionsApiKey", TravelTimeCalculator_GoogleDirectionsApiKey
+            resValue 'string', "directions_api_key", TravelTimeCalculator_GoogleDirectionsApiKey
         }
     }
 }
+
+
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
