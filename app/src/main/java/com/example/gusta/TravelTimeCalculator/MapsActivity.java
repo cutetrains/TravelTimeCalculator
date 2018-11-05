@@ -12,6 +12,12 @@ import android.widget.Button;
 import android.view.View;
 
 //import com.example.gusta.TravelTimeCalculator.R;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.PlaceDetectionClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -25,6 +31,10 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.android.volley.RequestQueue;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -34,8 +44,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private boolean mLocationPermissionGranted;
     private final LatLng mDefaultLocation = new LatLng(56, 13);
     private static final int DEFAULT_ZOOM = 15;
-
-
 
     // The entry points to the Places API.
     private GeoDataClient mGeoDataClient;
@@ -47,8 +55,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     DBHelper mydb;
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,11 +63,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mydb = new DBHelper(this);
         Log.d("GustafTag",  "Create DB");
         Log.d("GustafTag",  mydb.getDatabaseName());
+
         final Button button = findViewById(R.id.scan_button);
         //TODO: Rename button to "`scanButton"
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                // Code here executes on main thread after user presses button
                 Log.d("GustafTag", "Button Tapped!");
                 LatLng cameraTarget = mMap.getCameraPosition().target;
                 double lat = cameraTarget.latitude;
@@ -189,7 +195,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void getDirections(LatLng cameraCoordinates){
         StringBuilder sb;
         sb = new StringBuilder();
-        String logSb;
 
         String apiKey = BuildConfig.DirectionsApiKey;
         String url;
@@ -219,13 +224,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         sb.append("&destination=" + (float)(roundedLat)/1000+","+(float)(roundedLon)/1000);
         sb.append("&mode=bicycling");
         sb.append("&key="+apiKey);
-        //sb.append("&key="+"AIzaSyBsCdbDkCMHDwRLkQTrdAU4eqvaf91VGvE");
-        logSb = sb.toString();
-        Log.d("GustafTag", logSb);
+        url = sb.toString();
+        Log.d("GustafTag", url);
+
+
+        JsonObjectRequest request= new JsonObjectRequest
+                (Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        int [] results = readDirections(response);
+                        Log.d("GustafTag", String.valueOf(results[0]));
+                        Log.d("GustafTag", String.valueOf(results[1]));
+                    }
+                }, new Response.ErrorListener() {
+
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // TODO: Handle error
+                    }
+                });
+
+        RequestQueue queue = Volley.newRequestQueue(this);
+
+        queue.add(request);
     }
 
-    private void readDirections(String jsonData){
-        Log.d("GustafTag",  "Interpreting the response");
+    private int[] readDirections(JSONObject js){
+        int duration = -1;
+        int distance = -1;
+        try {
+            JSONObject legs = js.getJSONArray("routes").getJSONObject(0).
+                    getJSONArray("legs").getJSONObject(0);
+            distance = legs.getJSONObject("distance").getInt("value");
+            duration = legs.getJSONObject("duration").getInt("value");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return new int[] {distance, duration};
     }
 
     private void getDeviceLocation() {
