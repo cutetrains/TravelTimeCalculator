@@ -16,7 +16,6 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.PlaceDetectionClient;
@@ -61,6 +60,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
 
         mydb = new DBHelper(this);
+
         Log.d("GustafTag",  "Create DB");
         Log.d("GustafTag",  mydb.getDatabaseName());
 
@@ -227,7 +227,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         url = sb.toString();
         Log.d("GustafTag", url);
 
-
+        /**************************************************************
+         * UNCOMMENT BELOW TO SEND REQUESTS                           *
+         * ************************************************************
         JsonObjectRequest request= new JsonObjectRequest
                 (Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
                     @Override
@@ -235,6 +237,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         int [] results = readDirections(response);
                         Log.d("GustafTag", String.valueOf(results[0]));
                         Log.d("GustafTag", String.valueOf(results[1]));
+
                     }
                 }, new Response.ErrorListener() {
 
@@ -247,6 +250,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         RequestQueue queue = Volley.newRequestQueue(this);
 
         queue.add(request);
+        **********************************************/
+        mydb.addEntry(30000, 40000, 30001, 40001,
+                "DRIVING", 1000,100);
     }
 
     private int[] readDirections(JSONObject js){
