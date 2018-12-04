@@ -34,10 +34,13 @@ import static org.junit.Assert.assertNotNull;
 //@Config(constants = BuildConfig::class)
 public class DBHelperTest {
 
-    DBHelper mydb;
+    //DBHelper mydb;
+
     @Test
     public void addition_isCorrect2() throws Exception {
         //mydb = new DBHelper(ApplicationProvider.getApplicationContext());
+
+
         assertEquals(4, 2 + 2);
     }
 

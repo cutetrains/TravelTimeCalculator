@@ -82,7 +82,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         });
-
+                 Log.d("GustafTag",  "MapsActivity:Creating GeoData");
         // Construct a GeoDataClient.
         mGeoDataClient = Places.getGeoDataClient(this);
 
@@ -97,6 +97,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        Log.d("GustafTag",  "MapsActivity:onCreate finished!");
+
     }
 
 
@@ -253,6 +255,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         **********************************************/
         mydb.addEntry(30000, 40000, 30001, 40001,
                 "DRIVING", 1000,100);
+        int value = mydb.getDistance(30000, 40000, 30001, 40001);
+        Log.d("GustafTag","Distance shall be 1000. Is: " + String.valueOf(value));
     }
 
     private int[] readDirections(JSONObject js){
