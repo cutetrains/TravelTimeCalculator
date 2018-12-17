@@ -13,7 +13,6 @@ import android.util.Log;
 // https://www.tutorialspoint.com/android/android_sqlite_database.htm
 //public class DBHelper extends SQLiteOpenHelper {
 public class DBHelper extends SQLiteOpenHelper {
-
     public static final String DATABASE_NAME = "MyDBName.db";
     public static final String DB_TABLE_NAME = "distanceDurationDb";
     public static final String TABLE_ORIGLAT = "origLat";
@@ -54,13 +53,6 @@ public class DBHelper extends SQLiteOpenHelper {
         //TODO Investigate how to add to an existing entry.
         String distanceMode = "";
         String durationMode = "";
-        //https://developer.android.com/training/data-storage/sqlite
-        ContentValues values = new ContentValues();
-        values.put(TABLE_ORIGLAT, origLat);
-        values.put(TABLE_ORIGLON, origLon);
-        values.put(TABLE_DESTLAT, destLat);
-        values.put(TABLE_DESTLON, destLon);
-        Log.d("GustafTag", "In DBHelper:AddEntry, "+ modeOfTransport );
         switch(modeOfTransport) {
             case "DRIVING":
                 distanceMode = "drivingDistance";
@@ -79,6 +71,14 @@ public class DBHelper extends SQLiteOpenHelper {
                 durationMode = "bicyclingDuration";
                 break;
         }
+
+        ContentValues values = new ContentValues();
+        values.put(TABLE_ORIGLAT, origLat);
+        values.put(TABLE_ORIGLON, origLon);
+        values.put(TABLE_DESTLAT, destLat);
+        values.put(TABLE_DESTLON, destLon);
+        Log.d("GustafTag", "In DBHelper:AddEntry, "+ modeOfTransport );
+
         values.put(distanceMode, distance);
         values.put(durationMode, duration);
         Log.d("GustafTag", values.toString());
@@ -87,27 +87,81 @@ public class DBHelper extends SQLiteOpenHelper {
     }
 
     //TODO make generic
-    public int getDistance(int origLat, int origLon, int destLat, int destLon){
+    public int[] getShortestDistance(int origLat, int origLon, int destLat, int destLon){
         Cursor queryCursor;
         SQLiteDatabase db = this.getWritableDatabase();
-        int dDist = -1;
-
+        int shortestMode = -1;
+        int dDist = Integer.MAX_VALUE;
         try{
-            String sql = "select " + TABLE_DRIVING_DISTANCE + " from " + DB_TABLE_NAME + "where ";
-            //String[] columns = {TABLE_BICYCLING_DISTANCE, TABLE_DRIVING_DISTANCE,
-            //        TABLE_TRANSIT_DISTANCE, TABLE_WALKING_DISTANCE};
-            String[] columns = {TABLE_DRIVING_DISTANCE};
+            Log.d("GustafTag", "GSD:in Try");
+            String[] columns = {TABLE_BICYCLING_DISTANCE, TABLE_DRIVING_DISTANCE,
+                    TABLE_TRANSIT_DISTANCE, TABLE_WALKING_DISTANCE};
             queryCursor = db.query(DB_TABLE_NAME, columns,
                     "origLat=" + origLat + " AND origLon=" + origLon + " AND destLat=" +
                             destLat + " AND destLon="+destLon,
                     null, null, null, null);
             if(queryCursor.moveToFirst()){
-                dDist = queryCursor.getInt(0);
+                Log.d("GustafTag", "GSD: in first if. Columns length: "+ columns.length);
+                for(int iii = 0; iii< columns.length; iii++){
+                    Log.d("GustafTag", "GSD: in for");
+                    if(queryCursor.getInt(iii) != 0){
+                        Log.d("GustafTag", "GSD: in second if. "+ queryCursor.getInt(iii));
+                        if(queryCursor.getInt(iii) < dDist ) {
+                            Log.d("GustafTag", String.valueOf(dDist) + " " + String.valueOf(queryCursor.getInt(iii) + " " + String.valueOf(iii)));
+                            dDist = queryCursor.getInt(iii);
+                            shortestMode = iii;
+                        }
+                    }
+                }
             }
         }catch(Exception ex){
             Log.d("GustafTag", ex.getMessage());
         }
-        return dDist;
+        if(dDist == Integer.MAX_VALUE) {
+            return new int[] {-1, -1};
+        } else {
+            return new int[] {dDist, shortestMode};
+        }
+    }
+
+    public int getDistanceDuration(int origLat, int origLon, int destLat, int destLon){
+        return 1;
+    }
+
+    //Returns 0 if no coordinate found, 1 if found or -1 if reversed is found.
+    public int checkIfCoordinateExists(int origLat, int origLon, int destLat, int destLon) {
+        Cursor queryCursor;
+        Cursor reversedQueryCursor;
+        SQLiteDatabase db = this.getWritableDatabase();
+        String[] columns = {TABLE_BICYCLING_DISTANCE, TABLE_DRIVING_DISTANCE,
+                TABLE_TRANSIT_DISTANCE, TABLE_WALKING_DISTANCE};
+        queryCursor = db.query(DB_TABLE_NAME, columns,
+                "origLat=" + origLat + " AND origLon=" + origLon + " AND destLat=" +
+                        destLat + " AND destLon="+destLon,
+                null, null, null, null);
+        int count = queryCursor.getCount();
+        queryCursor.close();
+        if(count == 0){
+            reversedQueryCursor = db.query(DB_TABLE_NAME, columns,
+                    "origLat=" + destLat + " AND origLon=" + destLon + " AND destLat=" +
+                            origLat + " AND destLon=" + origLon,
+                    null, null, null, null);
+            int reversedCount = reversedQueryCursor.getCount();
+            reversedQueryCursor.close();
+            if(reversedCount == 0){
+                return 0;
+            } else {
+                return -1;
+            }
+        } else {
+            return 1;
+        }
+    }
+
+        /* This method clears the test database  */
+    public void clearTestDatabase(){
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(DB_TABLE_NAME, null, null);
     }
 
     @Override
@@ -123,7 +177,6 @@ public class DBHelper extends SQLiteOpenHelper {
                 TABLE_WALKING_DISTANCE + " int, " + TABLE_WALKING_DURATION + " int, CONSTRAINT " +
                 TABLE_CONSTRAINT_COORDINATE + " UNIQUE (" + TABLE_ORIGLAT + ", " + TABLE_ORIGLON +
                 ", " + TABLE_DESTLAT + ", " + TABLE_DESTLON +") );"
-
 
         );
 

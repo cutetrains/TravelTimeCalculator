@@ -12,11 +12,6 @@ import android.widget.Button;
 import android.view.View;
 
 //import com.example.gusta.TravelTimeCalculator.R;
-import com.android.volley.Request;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.PlaceDetectionClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -30,7 +25,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.android.volley.RequestQueue;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -253,10 +247,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         queue.add(request);
         **********************************************/
-        mydb.addEntry(30000, 40000, 30001, 40001,
-                "DRIVING", 1000,100);
-        int value = mydb.getDistance(30000, 40000, 30001, 40001);
-        Log.d("GustafTag","Distance shall be 1000. Is: " + String.valueOf(value));
+        //mydb.addEntry(30000, 40000, 30004, 40001,
+        //        "DRIVING", 1000,100);
+        mydb.addEntry(30000, 40000, 30004, 40001,
+                "TRANSIT", 900,900);
+        int[] value = mydb.getShortestDistance(30000, 40000, 30004, 40001);
+        Log.d("GustafTag","Distance shall be 900. Is: " + String.valueOf(value[0]));
     }
 
     private int[] readDirections(JSONObject js){
