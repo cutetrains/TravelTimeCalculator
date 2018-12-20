@@ -29,6 +29,8 @@ import com.google.android.gms.tasks.Task;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Arrays;
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
@@ -250,9 +252,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //mydb.addEntry(30000, 40000, 30004, 40001,
         //        "DRIVING", 1000,100);
         mydb.addEntry(30000, 40000, 30004, 40001,
-                "TRANSIT", 900,900);
-        int[] value = mydb.getShortestDistance(30000, 40000, 30004, 40001);
-        Log.d("GustafTag","Distance shall be 900. Is: " + String.valueOf(value[0]));
+                "TRANSIT", 900,320);
+        mydb.addEntry(30000, 40000, 30004, 40001,
+                "DRIVING", 300,450);
+        mydb.addEntry(30000, 40000, 12004, 40001,
+                "DRIVING", 300,450);
+        int[] distDurData = mydb.getAllDistanceDuration(30000,40000,30004,40001);
+
+        //Log.d("GustafTag", Arrays.toString(distDurData));
+        int[] value = mydb.getShortestDistanceOrDuration(30000, 40000, 30004, 40001, "Distance");
+        //Log.d("GustafTag","Distance shall be 300. Is: " + String.valueOf(value[0]));
+        value = mydb.getShortestDistanceOrDuration(30000, 40000, 30004, 40001, "Duration");
+        //Log.d("GustafTag","Duration shall be 320. Is: " + String.valueOf(value[0]));
+        mydb.listTableToConsole();
     }
 
     private int[] readDirections(JSONObject js){

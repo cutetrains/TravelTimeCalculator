@@ -52,7 +52,7 @@ public class DatabaseInstrumentedTest {
         testDb.addEntry(100,200,300,400,"DRIVING",
                 500,600);
         int [] expectedArray = {500, 1};
-        assertArrayEquals(expectedArray, testDb.getShortestDistance(100,200,300,400));
+        assertArrayEquals(expectedArray, testDb.getShortestDistanceOrDuration(100,200,300,400, "Distance"));
     }
 
     @Test
@@ -86,30 +86,49 @@ public class DatabaseInstrumentedTest {
                 500,600);
         testDb.addEntry(100,200,300,400,"TRANSIT",
                 400,900);
-
-        int [] expectedArray = {500, 1};//REMOVE THIS LATER!
-        //int [] expectedArray = {400, 2};
-        assertArrayEquals(expectedArray, testDb.getShortestDistance(100,200,300,400));
+        int [] expectedArray = {400, 2};
+        assertArrayEquals(expectedArray, testDb.getShortestDistanceOrDuration(100,200,300,400, "Distance"));
+        int [] expectedArray2 = {600, 1};
+        assertArrayEquals(expectedArray2, testDb.getShortestDistanceOrDuration(100,200,300,400, "Duration"));
     }
 
-    /*@Test
-    public void addDrivingEntryFindReversedDirection() throws Exception {
-        //Add one entry to the database with duration and distance for DRIVNG only.
+    @Test
+    public void addEntryAllModes_getAllData_normAndReversed() throws Exception {
+        Log.d("GustafTag","Test: Testing addEntryMultipleModes_getShortestDistance");
+        //Add one entry to the database with duration and distance for DRIVNG and TRANSIT.
         //Verify that there exists only one entry and that the corresponding TRANSIT values are null.
         testDb.addEntry(100,200,300,400,"DRIVING",
                 500,600);
-        assertEquals(testDb.getDistance(100,200,300,400), 500);
-    }*/
+        testDb.addEntry(100,200,300,400,"TRANSIT",
+                400,900);
+        testDb.addEntry(100,200,300,400,"WALKING",
+                300,800);
+        testDb.addEntry(100,200,300,400,"BICYCLING",
+                200,700);
+        int [] expectedArray = {200, 700, 500, 600, 400, 900, 300, 800};
+        int [] defaultArray = {0,0};
+        assertArrayEquals(expectedArray, testDb.getAllDistanceDuration(100,200,300,400));
+        assertArrayEquals(expectedArray, testDb.getAllDistanceDuration(300,400,100,200));
 
-
-
-        /*
-    @Test
-    public void addDuplicateEntry() throws Exception {
-    //Add one entry to the database with duration and distance for DRIVNG only.
-    //Try to add a second entry for the same pairs of coordinates.
-    //Verify that the entry to the database is updated and that there are not two similar entries.
+        assertArrayEquals(defaultArray, testDb.getAllDistanceDuration(300,401,100,200));
     }
-     */
+
+
+    @Test
+    public void addEntryMultipleModesReversed_getShortestDistance() throws Exception {
+        Log.d("GustafTag","Test: Testing addEntryMultipleModes_getShortestDistance");
+        //Add one entry to the database with duration and distance for DRIVNG and TRANSIT.
+        //Verify that there exists only one entry and that the corresponding TRANSIT values are null.
+        testDb.addEntry(100,200,300,400,"DRIVING",
+                500,600);
+        testDb.addEntry(300,400,100,200,"BICYCLING",
+                100,900);
+        int [] expectedArray = {100, 0};
+        assertArrayEquals(expectedArray, testDb.getShortestDistanceOrDuration(100,200,300,400, "Distance"));
+    }
+
+
+
+
 
 }
