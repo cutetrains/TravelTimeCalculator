@@ -29,9 +29,6 @@ public class DBHelper extends SQLiteOpenHelper {
 
     public DBHelper(Context context) {
         super(context, DATABASE_NAME , null, 1);
-        Log.v("GustafTag", "In DBHelper:constructor");
-        //db = getWritableDatabase();
-
     }
 
     @Override
@@ -40,7 +37,6 @@ public class DBHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS distanceDurationDb");
         onCreate(db);
         Log.d("GustafTag", "In DBHelper:onUpgrade");
-
     }
 
     //TODO add method for printing db to console
@@ -50,7 +46,6 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
 
         int coordinatesExistInDb = checkIfCoordinateExists(origLat, origLon, destLat, destLon);
-        //Log.d("GustafTag", "CoordinateExists:" + coordinatesExistInDb);
 
         String distanceMode = "";
         String durationMode = "";
@@ -141,9 +136,12 @@ public class DBHelper extends SQLiteOpenHelper {
                     }
                 }
             }
+            queryCursor.close();
+            //db.close();
         }catch(Exception ex){
             Log.d("GustafTag", ex.getMessage());
         }
+
         if(shortestValue == Integer.MAX_VALUE) {
             return new int[] {-1, -1};
         } else {
@@ -223,13 +221,8 @@ public class DBHelper extends SQLiteOpenHelper {
         Cursor queryCursor;
         SQLiteDatabase db = this.getWritableDatabase();
         String tableString = String.format("Table %s:\n", DB_TABLE_NAME);
-
         try {
             String[] columns = {"*"};
-                    /*TABLE_ORIGLON, TABLE_ORIGLAT, TABLE_DESTLON, TABLE_TABLE_BICYCLING_DISTANCE, TABLE_BICYCLING_DURATION,
-                    TABLE_DRIVING_DISTANCE, TABLE_DRIVING_DURATION,
-                    TABLE_TRANSIT_DISTANCE, TABLE_TRANSIT_DURATION,
-                    TABLE_WALKING_DISTANCE, TABLE_WALKING_DURATION};*/
             queryCursor = db.rawQuery("SELECT * FROM "+ DB_TABLE_NAME, null);
             if (queryCursor.moveToFirst()) {
                 String[] columnNames = queryCursor.getColumnNames();
@@ -243,16 +236,14 @@ public class DBHelper extends SQLiteOpenHelper {
                                 queryCursor.getString(queryCursor.getColumnIndex(name)));
                     }
                     tableString += "\n";
-
                 } while (queryCursor.moveToNext());
             }
+            queryCursor.close();
         } catch (Exception ex) {
             Log.d("GustafTag", ex.getMessage());
         }
         Log.d("GustafTag", tableString);
     }
-
-
 
     /* This method clears the test database  */
     public void clearTestDatabase(){
@@ -272,9 +263,6 @@ public class DBHelper extends SQLiteOpenHelper {
                 TABLE_WALKING_DISTANCE + " int, " + TABLE_WALKING_DURATION + " int, CONSTRAINT " +
                 TABLE_CONSTRAINT_COORDINATE + " UNIQUE (" + TABLE_ORIGLAT + ", " + TABLE_ORIGLON +
                 ", " + TABLE_DESTLAT + ", " + TABLE_DESTLON +") );"
-
         );
-
     }
-
 }

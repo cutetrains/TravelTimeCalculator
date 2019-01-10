@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.view.View;
 
 //import com.example.gusta.TravelTimeCalculator.R;
+import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.PlaceDetectionClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -48,37 +49,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Location mLastKnownLocation;
 
+    TravelTimeHandler tth = new TravelTimeHandler();
     DBHelper mydb;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-
         mydb = new DBHelper(this);
-
-        Log.d("GustafTag",  "Create DB");
-        Log.d("GustafTag",  mydb.getDatabaseName());
-
-        final Button button = findViewById(R.id.scan_button);
-        //TODO: Rename button to "`scanButton"
-        button.setOnClickListener(new View.OnClickListener() {
+        final Button scanButton = findViewById(R.id.scan_button);
+        scanButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                Log.d("GustafTag", "Button Tapped!");
                 LatLng cameraTarget = mMap.getCameraPosition().target;
-                double lat = cameraTarget.latitude;
-                double lon = cameraTarget.longitude;
-                Log.d("GustafTag", String.valueOf(lat));
-                Log.d("GustafTag", String.valueOf(lon));
                 if(cameraTarget == null){
                     Log.d("GustafTag","cameraTarget is null");
                 } else {
-                    Log.d("GustafTag","cameraTarget is not null");
-                    getDirections(cameraTarget);
+                    tth.getDirectionsFromUrl(cameraTarget);
                 }
             }
         });
-                 Log.d("GustafTag",  "MapsActivity:Creating GeoData");
         // Construct a GeoDataClient.
         mGeoDataClient = Places.getGeoDataClient(this);
 
@@ -93,10 +82,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        Log.d("GustafTag",  "MapsActivity:onCreate finished!");
-
     }
-
 
     /**
      * Manipulates the map once available.
@@ -111,18 +97,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(55.6, 13);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Malmö"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-
         // Prompt the user for permission.
         getLocationPermission();
         // Turn on the My Location layer and the related control on the map.
         updateLocationUI();
-
         // Get the current location of the device and set the position of the map.
         getDeviceLocation();
+        
+        mMap.setOnMapClickListener(new OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng point) {
+                Log.d("GustafTag", "Map tapped: " + point.toString());
+
+            }
+        });
+
     }
 
     /**
@@ -185,102 +174,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         updateLocationUI();
     }
 
-    /*
-     * The location is rounded to three decimals by multiplying the coordinates by 1000 and
-     * converting to integer. Rounding a float will give unpredictable numerical side effects.
-     *
-     */
-    private void getDirections(LatLng cameraCoordinates){
-        StringBuilder sb;
-        sb = new StringBuilder();
-
-        String apiKey = BuildConfig.DirectionsApiKey;
-        String url;
-        int roundedLat = (int) (cameraCoordinates.latitude * 1000);
-        int roundedLon = (int) (cameraCoordinates.longitude * 1000);
-
-        if(cameraCoordinates == null){
-            Log.d("GustafTag", "Null coordinates");
-        } else {
-            //Rounded location.
-
-            Log.e("GustafTag",
-                    "W : " + (roundedLat + 1) + "/" + (roundedLon - 1) +
-                            " C : " + (roundedLat + 1) + "/" + roundedLon +
-                            " E : " + (roundedLat + 1) + "/" + (roundedLon + 1));
-            Log.e("GustafTag",
-                    "W : " + roundedLat + "/" + (roundedLon - 1) +
-                            " C : " + roundedLat + "/" + roundedLon +
-                            " E : " + roundedLat + "/" + (roundedLon + 1));
-            Log.e("GustafTag",
-                    "W : " + (roundedLat - 1) + "/" + (roundedLon - 1) +
-                            " C : " + (roundedLat - 1) + "/" + roundedLon +
-                            " E : " + (roundedLat - 1) + "/" + (roundedLon + 1));
-        }
-        sb.append("https://maps.googleapis.com/maps/api/directions/json");
-        sb.append("?origin=" + (float)(roundedLat-10)/1000+","+(float)(roundedLon)/1000);
-        sb.append("&destination=" + (float)(roundedLat)/1000+","+(float)(roundedLon)/1000);
-        sb.append("&mode=bicycling");
-        sb.append("&key="+apiKey);
-        url = sb.toString();
-        Log.d("GustafTag", url);
-
-        /**************************************************************
-         * UNCOMMENT BELOW TO SEND REQUESTS                           *
-         * ************************************************************
-        JsonObjectRequest request= new JsonObjectRequest
-                (Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        int [] results = readDirections(response);
-                        Log.d("GustafTag", String.valueOf(results[0]));
-                        Log.d("GustafTag", String.valueOf(results[1]));
-
-                    }
-                }, new Response.ErrorListener() {
-
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        // TODO: Handle error
-                    }
-                });
-
-        RequestQueue queue = Volley.newRequestQueue(this);
-
-        queue.add(request);
-        **********************************************/
-        //mydb.addEntry(30000, 40000, 30004, 40001,
-        //        "DRIVING", 1000,100);
-        mydb.addEntry(30000, 40000, 30004, 40001,
-                "TRANSIT", 900,320);
-        mydb.addEntry(30000, 40000, 30004, 40001,
-                "DRIVING", 300,450);
-        mydb.addEntry(30000, 40000, 12004, 40001,
-                "DRIVING", 300,450);
-        int[] distDurData = mydb.getAllDistanceDuration(30000,40000,30004,40001);
-
-        //Log.d("GustafTag", Arrays.toString(distDurData));
-        int[] value = mydb.getShortestDistanceOrDuration(30000, 40000, 30004, 40001, "Distance");
-        //Log.d("GustafTag","Distance shall be 300. Is: " + String.valueOf(value[0]));
-        value = mydb.getShortestDistanceOrDuration(30000, 40000, 30004, 40001, "Duration");
-        //Log.d("GustafTag","Duration shall be 320. Is: " + String.valueOf(value[0]));
-        mydb.listTableToConsole();
-    }
-
-    private int[] readDirections(JSONObject js){
-        int duration = -1;
-        int distance = -1;
-        try {
-            JSONObject legs = js.getJSONArray("routes").getJSONObject(0).
-                    getJSONArray("legs").getJSONObject(0);
-            distance = legs.getJSONObject("distance").getInt("value");
-            duration = legs.getJSONObject("duration").getInt("value");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return new int[] {distance, duration};
-    }
-
     private void getDeviceLocation() {
         /*
          * Get the best and most recent location of the device, which may be null in rare
@@ -295,7 +188,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         if (task.isSuccessful()) {
                             mLastKnownLocation = task.getResult();
                             if (mLastKnownLocation == null){
-                                Log.e("GustafTag", "mLastKnownLocation is  null");//THIS IS CAUSING CRASH! WHY ISN*T THAT POPULATED?
+                                Log.e("GustafTag", "mLastKnownLocation is  null");
                             } else {
                                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                         new LatLng(mLastKnownLocation.getLatitude(),
