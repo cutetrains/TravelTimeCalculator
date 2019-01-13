@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">TravelTimeCalculator</string>
     <string name="title_activity_maps">Map</string>
-    <string name="scan_directions">Scan</string>
+    <string name="clear_directions">Clear</string>
 </resources>

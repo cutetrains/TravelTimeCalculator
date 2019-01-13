@@ -1,6 +1,13 @@
 package com.example.gusta.TravelTimeCalculator;
+import android.content.Context;
 import android.util.Log;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.maps.model.LatLng;
 
 import org.json.JSONException;
@@ -8,13 +15,20 @@ import org.json.JSONObject;
 
 public class TravelTimeHandler {
 
+    public String durationOrDistance;
+    /*Distance or Duration*/
+    public TravelTimeHandler(String durOrDist) {
+        durationOrDistance = durOrDist;
+    }
+
     /*STUB
     * This method is called when the camera target is changed.*/
     public void refreshDirections(LatLng orig, DBHelper db) {
         //Clear current markers
-        Log.d("GustafTag", "Clearing all markers (NOT IMPLEMENTED YET!)");
+        Log.d("GustafTag", "RESPONDING TO MOVE!");
+        /*Log.d("GustafTag", "Clearing all markers (NOT IMPLEMENTED YET!)");
         //Casting coordinates to database format
-        Log.d("GustafTag", "Casting coordinates to db format (NOT IMPLEMENTED YET!)");
+
         //Search for coordinates from the current
         Log.d("GustafTag", "Querying database for any existing directions originating\n" +
                 "or ending at this coordinate (NOT IMPLEMENTED YET!)");
@@ -22,38 +36,67 @@ public class TravelTimeHandler {
                 " (NOT IMPLEMENTED YET!)");
         Log.d("GustafTag", "   Adding directions to database, if additional found\n" +
                 " (NOT IMPLEMENTED YET!)");
-        Log.d("GustafTag", "Adding markers for all found directions (NOT IMPLEMENTED YET!)");
+        Log.d("GustafTag", "Adding markers for all found directions (NOT IMPLEMENTED YET!)");*/
     }
 
     /*STUB
      * This method is called when the user taps the map.*/
     public void scanDirectionsForTap(LatLng orig, LatLng dest, DBHelper db){
-        //Querying the database shouldn't be necessary, but the app needs to check whether the
-        //position has a marker or not.
-        Log.d("GustafTag", "Casting coordinates to db format (NOT IMPLEMENTED YET!)");
-        //TODO BELOW ARE SAME AS THE LAST ONES IN refreshDirections. Create a method?
-        Log.d("GustafTag", "Querying database for existing directions (NOT IMPLEMENTED YET!)");
-        Log.d("GustafTag", "Querying directions for the missing directions (NOT IMPLEMENTED YET!)");
-        Log.d("GustafTag", "Adding markers for all found directions (NOT IMPLEMENTED YET!)");
+       int [] results = getShortestDirectionFromDb(orig, dest, db);
+        if( results[1] == -1 ) {
+            getDirectionsFromUrl(orig, dest, "BICYCLING", db);
+            getDirectionsFromUrl(orig, dest, "DRIVING", db);
+            getDirectionsFromUrl(orig, dest, "TRANSIT", db);
+            getDirectionsFromUrl(orig, dest, "WALKING", db);
+        } else {
+            Log.d("GustafTag", "Entry found in database. Msrker should already be there");
+        }
     }
 
-    /*STUB
-    * This will end with a call to the Google directions for adding missing directions to DB*/
-    public void getDirectionFromDb(LatLng orig, LatLng dest, DBHelper db){
+    /*CODE COMPLETE*/
+    public int[] getShortestDirectionFromDb(LatLng orig, LatLng dest, DBHelper db){
         Log.d("GustafTag", "Read directions from database between " + orig.toString()
                 + " and " + dest);
-        //db.listTableToConsole();
+        int origLat = (int) ( orig.latitude * 1000 );
+        int origLon = (int) ( orig.longitude * 1000 );
+        int destLat = (int) ( dest.latitude * 1000 );
+        int destLon = (int) ( dest.longitude * 1000 );
 
-        //db.getAllDistanceDuration(orig.latitude)
+        int [] results = db.getShortestDistanceOrDuration(origLat, origLon, destLat, destLon, durationOrDistance);
+        String resultMode ="";
+
+        switch(results[1]) {
+            case 0:
+                resultMode = "BICYCLING";
+                break;
+            case 1:
+                resultMode = "DRIVING";
+                break;
+            case 2:
+                resultMode = "WALKING";
+                break;
+            case 3:
+                resultMode = "TRANSIT";
+                break;
+            default:
+                resultMode = "N/A";
+                break;
+        }
+
+        Log.d("GustafTag", "Best mode: " + resultMode + ", time: " +results[0]);
+        return results;
     }
 
-    /*STUB*/
-    public void saveDirectionsToDb(DBHelper db){
-        Log.d("GustafTag", "Save directions to datbase");
+
+    public void saveDirectionsToDb(LatLng orig, LatLng dest, String modeOfTransport,
+                                   int distance, int duration, DBHelper db){
+        int origLat = (int) ( orig.latitude * 1000 );
+        int origLon = (int) ( orig.longitude * 1000 );
+        int destLat = (int) ( dest.latitude * 1000 );
+        int destLon = (int) ( dest.longitude * 1000 );
+        db.addEntry(origLat, origLon, destLat, destLon, modeOfTransport, distance, duration);
     }
 
-    /*STUB
-    * Add reference to map. If necessary, move method to MapsActivity*/
     public void clearMarkers(){
         Log.d("GustafTag", "Clear Markers");
     }
@@ -64,71 +107,49 @@ public class TravelTimeHandler {
         Log.d("GustafTag", "Add marker");
     }
 
-    /*
+    /*STUB - SAVE RESULTS TO DB
      * The location is rounded to three decimals by multiplying the coordinates by 1000 and
      * converting to integer. Rounding a float will give unpredictable numerical side effects.
      *
      */
-    public void getDirectionsFromUrl(LatLng cameraCoordinates){
+    public void getDirectionsFromUrl(LatLng orig, LatLng dest, String modeOfTransport, DBHelper db) {
+        Log.d("GustafTag", "In getDirectionsFromUrl");
         StringBuilder sb;
         sb = new StringBuilder();
 
         String apiKey = BuildConfig.DirectionsApiKey;
         String url;
-        int roundedLat = (int) (cameraCoordinates.latitude * 1000);
-        int roundedLon = (int) (cameraCoordinates.longitude * 1000);
+        int roundedOrigLat = (int) (orig.latitude * 1000);
+        int roundedOrigLon = (int) (orig.longitude * 1000);
+        int roundedDestLat = (int) (dest.latitude * 1000);
+        int roundedDestLon = (int) (dest.longitude * 1000);
 
-        if(cameraCoordinates == null){
-            Log.d("GustafTag", "Null coordinates");
-        }
         sb.append("https://maps.googleapis.com/maps/api/directions/json");
-        sb.append("?origin=" + (float)(roundedLat-10)/1000+","+(float)(roundedLon)/1000);
-        sb.append("&destination=" + (float)(roundedLat)/1000+","+(float)(roundedLon)/1000);
-        sb.append("&mode=bicycling");
-        sb.append("&key="+apiKey);
+        sb.append("?origin=" + (float) (roundedOrigLat) / 1000 + "," + (float) (roundedOrigLon) / 1000);
+        sb.append("&destination=" + (float) (roundedDestLat) / 1000 + "," + (float) (roundedDestLon) / 1000);
+        sb.append("&mode=" + modeOfTransport.toLowerCase());
+        sb.append("&key=" + apiKey);
         url = sb.toString();
         Log.d("GustafTag", url);
 
-        /**************************************************************
-         * UNCOMMENT BELOW TO SEND REQUESTS                           *
-         * ************************************************************
-         JsonObjectRequest request= new JsonObjectRequest
-         (Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-        @Override
-        public void onResponse(JSONObject response) {
-        int [] results = readDirections(response);
-        Log.d("GustafTag", String.valueOf(results[0]));
-        Log.d("GustafTag", String.valueOf(results[1]));
-
-        }
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                int[] results = readDirectionsFromJson(response);
+                saveDirectionsToDb(orig, dest, modeOfTransport, results[0], results[1], db);
+                getShortestDirectionFromDb(orig, dest, db);
+            }
         }, new Response.ErrorListener() {
 
-        @Override
-        public void onErrorResponse(VolleyError error) {
-        // TODO: Handle error
-        }
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                // TODO: Handle error
+            }
         });
+        Context context = MapsActivity.getAppContext();
+        RequestQueue queue = Volley.newRequestQueue(context);
 
-         RequestQueue queue = Volley.newRequestQueue(this);
-
-         queue.add(request);
-         **********************************************/
-        //mydb.addEntry(30000, 40000, 30004, 40001,
-        //        "DRIVING", 1000,100);
-        //db.addEntry(30000, 40000, 30004, 40001,
-        //        "TRANSIT", 900,320);
-        //db.addEntry(30000, 40000, 30004, 40001,
-        //        "DRIVING", 300,450);
-        //db.addEntry(30000, 40000, 12004, 40001,
-        //        "DRIVING", 300,450);
-        //int[] distDurData = db.getAllDistanceDuration(30000,40000,30004,40001);
-
-        //Log.d("GustafTag", Arrays.toString(distDurData));
-        //int[] value = db.getShortestDistanceOrDuration(30000, 40000, 30004, 40001, "Distance");
-        //Log.d("GustafTag","Distance shall be 300. Is: " + String.valueOf(value[0]));
-        //value = db.getShortestDistanceOrDuration(30000, 40000, 30004, 40001, "Duration");
-        //Log.d("GustafTag","Duration shall be 320. Is: " + String.valueOf(value[0]));
-        //db.listTableToConsole();
+        queue.add(request);
     }
 
     /* CODE COMPLETE */

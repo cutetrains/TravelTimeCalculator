@@ -50,6 +50,10 @@ public class DBHelper extends SQLiteOpenHelper {
         String distanceMode = "";
         String durationMode = "";
         switch(modeOfTransport) {
+            case "BICYCLING":
+                distanceMode = "bicyclingDistance";
+                durationMode = "bicyclingDuration";
+                break;
             case "DRIVING":
                 distanceMode = "drivingDistance";
                 durationMode = "drivingDuration";
@@ -61,10 +65,6 @@ public class DBHelper extends SQLiteOpenHelper {
             case "TRANSIT":
                 distanceMode = "transitDistance";
                 durationMode = "transitDuration";
-                break;
-            case "BICYCLING":
-                distanceMode = "bicyclingDistance";
-                durationMode = "bicyclingDuration";
                 break;
         }
 
@@ -88,7 +88,7 @@ public class DBHelper extends SQLiteOpenHelper {
                         TABLE_ORIGLAT + " = ?  AND " + TABLE_ORIGLON + " = ? AND " +
                                 TABLE_DESTLAT + " = ? AND " + TABLE_DESTLON + " = ?",
                         whereArgs);
-            } else {
+            } else { //REVERSED
                 db.update(DB_TABLE_NAME,
                         values,
                         TABLE_DESTLAT + " = ?  AND " + TABLE_DESTLON + " = ? AND " +
@@ -137,11 +137,12 @@ public class DBHelper extends SQLiteOpenHelper {
                 }
             }
             queryCursor.close();
-            //db.close();
+
         }catch(Exception ex){
             Log.d("GustafTag", ex.getMessage());
         }
 
+        db.close();//ADDED TO RESOLVE POSSIBLE LOCK ISSUE
         if(shortestValue == Integer.MAX_VALUE) {
             return new int[] {-1, -1};
         } else {
@@ -243,6 +244,7 @@ public class DBHelper extends SQLiteOpenHelper {
             Log.d("GustafTag", ex.getMessage());
         }
         Log.d("GustafTag", tableString);
+        db.close();
     }
 
     /* This method clears the test database  */

@@ -53,6 +53,8 @@ public class DatabaseInstrumentedTest {
                 500,600);
         int [] expectedArray = {500, 1};
         assertArrayEquals(expectedArray, testDb.getShortestDistanceOrDuration(100,200,300,400, "Distance"));
+        int [] expectedArray2={-1, -1};
+        assertArrayEquals(expectedArray2, testDb.getShortestDistanceOrDuration(100,201,300,400, "Distance"));
     }
 
     @Test

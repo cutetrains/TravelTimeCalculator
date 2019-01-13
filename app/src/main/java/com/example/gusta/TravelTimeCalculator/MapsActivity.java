@@ -1,5 +1,6 @@
 package com.example.gusta.TravelTimeCalculator;
 
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.support.annotation.NonNull;
@@ -34,6 +35,13 @@ import java.util.Arrays;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
+    private static Context appContext;
+
+    public static Context getAppContext() {
+        return appContext;
+    }
+
+
     private GoogleMap mMap;
     private static final String TAG = MapsActivity.class.getSimpleName();
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
@@ -49,7 +57,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Location mLastKnownLocation;
 
-    TravelTimeHandler tth = new TravelTimeHandler();
+    /* FOR NOW, THE APP FOCUSES ON DURATION */
+    TravelTimeHandler tth = new TravelTimeHandler("Duration");
     DBHelper mydb;
 
     @Override
@@ -57,14 +66,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         mydb = new DBHelper(this);
-        final Button scanButton = findViewById(R.id.scan_button);
+        final Button scanButton = findViewById(R.id.clear_button);
+        appContext = getApplicationContext();
+
+        //TODO replace button with mMap.onCameraChangeListener
         scanButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 LatLng cameraTarget = mMap.getCameraPosition().target;
                 if(cameraTarget == null){
                     Log.d("GustafTag","cameraTarget is null");
                 } else {
-                    tth.getDirectionsFromUrl(cameraTarget);
+                    tth.refreshDirections(cameraTarget, mydb);
+                    //tth.getDirectionsFromUrl(cameraTarget);
                 }
             }
         });
@@ -103,12 +116,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         updateLocationUI();
         // Get the current location of the device and set the position of the map.
         getDeviceLocation();
-        
+
+        mMap.setOnCameraMoveListener(new GoogleMap.OnCameraMoveListener() {
+            @Override
+            public void onCameraMove() {
+                tth.refreshDirections(mMap.getCameraPosition().target, mydb);
+            }
+        });
+
         mMap.setOnMapClickListener(new OnMapClickListener() {
             @Override
             public void onMapClick(LatLng point) {
                 Log.d("GustafTag", "Map tapped: " + point.toString());
-
+                tth.scanDirectionsForTap(point, mMap.getCameraPosition().target, mydb);
             }
         });
 
