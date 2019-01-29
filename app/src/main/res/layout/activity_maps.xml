@@ -19,14 +19,4 @@ tools:context="com.example.gusta.TravelTimeCalculator.MapsActivity" >
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     class="com.google.android.gms.maps.SupportMapFragment"/>
-
-<Button
-    android:id="@+id/clear_button"
-    android:layout_width="80dp"
-    android:layout_height="wrap_content"
-    android:layout_alignParentLeft="true"
-    android:layout_alignParentBottom="true"
-    android:text="@string/clear_directions" />
-
-
 </RelativeLayout>

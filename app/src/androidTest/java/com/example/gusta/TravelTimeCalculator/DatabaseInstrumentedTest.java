@@ -11,6 +11,8 @@ import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -129,8 +131,28 @@ public class DatabaseInstrumentedTest {
         assertArrayEquals(expectedArray, testDb.getShortestDistanceOrDuration(100,200,300,400, "Distance"));
     }
 
+    /*@Test
+    public void addMultipleEntries_getCoordinatePairs() throws Exception {
 
+        ArrayList<ArrayList<Integer>> expectedValues = [1,2],[3,4],[5,6]]
+        int expectedValues[][] = {
+            {1, 2},
+            {3, 4},
+            {5, 6}
+        };
+        ArrayList<ArrayList<Integer>> returnValues = testDb.getCoordinatePairsForPosition(300,400);
+        assertEquals(returnValues.length, expectedValues.length);
+        for(int iii=0; iii < expectedValues.length; iii++) {
+            assertEquals(returnValues[iii].length, expectedValues[iii].length);
+            for (int jjj = 0; jjj < expectedValues[iii].length; jjj++) {
+                assertEquals(returnValues[iii][jjj], expectedValues[iii][jjj]);
+                Log.d("GustafTest", "Test: addMultipleEntries_getCoordinatePairs "+
+                        iii + " " + jjj);
+            }
+            //Log.d("GustafTest", "Test: addMultipleEntries_getCoordinatePairs");
 
+        }
+    }*/
 
 
 }

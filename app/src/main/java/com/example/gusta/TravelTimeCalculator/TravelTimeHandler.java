@@ -8,41 +8,37 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Map;
+
 public class TravelTimeHandler {
 
     public String durationOrDistance;
+    public GoogleMap thisMap;//TEMP
     /*Distance or Duration*/
-    public TravelTimeHandler(String durOrDist) {
+    public TravelTimeHandler(String durOrDist, GoogleMap gmap) {//TEMP
+
         durationOrDistance = durOrDist;
+        thisMap = gmap;//TEMP
     }
 
     /*STUB
     * This method is called when the camera target is changed.*/
     public void refreshDirections(LatLng orig, DBHelper db) {
         //Clear current markers
-        Log.d("GustafTag", "RESPONDING TO MOVE!");
-        /*Log.d("GustafTag", "Clearing all markers (NOT IMPLEMENTED YET!)");
-        //Casting coordinates to database format
 
-        //Search for coordinates from the current
-        Log.d("GustafTag", "Querying database for any existing directions originating\n" +
-                "or ending at this coordinate (NOT IMPLEMENTED YET!)");
-        Log.d("GustafTag", "Querying Google Directions for partial entries in database" +
-                " (NOT IMPLEMENTED YET!)");
-        Log.d("GustafTag", "   Adding directions to database, if additional found\n" +
-                " (NOT IMPLEMENTED YET!)");
-        Log.d("GustafTag", "Adding markers for all found directions (NOT IMPLEMENTED YET!)");*/
     }
 
     /*STUB
      * This method is called when the user taps the map.*/
     public void scanDirectionsForTap(LatLng orig, LatLng dest, DBHelper db){
-       int [] results = getShortestDirectionFromDb(orig, dest, db);
+        int [] results = getShortestDirectionFromDb(orig, dest, db);
         if( results[1] == -1 ) {
             getDirectionsFromUrl(orig, dest, "BICYCLING", db);
             getDirectionsFromUrl(orig, dest, "DRIVING", db);
@@ -55,12 +51,10 @@ public class TravelTimeHandler {
 
     /*CODE COMPLETE*/
     public int[] getShortestDirectionFromDb(LatLng orig, LatLng dest, DBHelper db){
-        Log.d("GustafTag", "Read directions from database between " + orig.toString()
-                + " and " + dest);
-        int origLat = (int) ( orig.latitude * 1000 );
-        int origLon = (int) ( orig.longitude * 1000 );
-        int destLat = (int) ( dest.latitude * 1000 );
-        int destLon = (int) ( dest.longitude * 1000 );
+        int origLat = (int) Math.round( orig.latitude * 1000 );
+        int origLon = (int) Math.round( orig.longitude * 1000 );
+        int destLat = (int) Math.round( dest.latitude * 1000 );
+        int destLon = (int) Math.round( dest.longitude * 1000 );
 
         int [] results = db.getShortestDistanceOrDuration(origLat, origLon, destLat, destLon, durationOrDistance);
         String resultMode ="";
@@ -82,47 +76,65 @@ public class TravelTimeHandler {
                 resultMode = "N/A";
                 break;
         }
-
-        Log.d("GustafTag", "Best mode: " + resultMode + ", time: " +results[0]);
+        // Count all non-zero entries. If there are four good resullts, add a marker to the map.
+        int [] nonNullResults = db.getAllDistanceDuration(origLat, origLon, destLat, destLon);
+        int numberOfNulls = 0;
+        for(int i : nonNullResults){
+            if(i==0){
+                numberOfNulls ++;
+            }
+        }
+        if(numberOfNulls == 0) {
+            MapsActivity mActivity= new MapsActivity();
+            //We don't know if we're looking in the direct or reversed direction.
+            // So provide both and let updateMarker tell which to look for
+            // (the latlng that isn't at the center).
+            mActivity.updateMarker(orig, dest, results[0], resultMode);
+        }
         return results;
     }
 
 
+
     public void saveDirectionsToDb(LatLng orig, LatLng dest, String modeOfTransport,
                                    int distance, int duration, DBHelper db){
-        int origLat = (int) ( orig.latitude * 1000 );
-        int origLon = (int) ( orig.longitude * 1000 );
-        int destLat = (int) ( dest.latitude * 1000 );
-        int destLon = (int) ( dest.longitude * 1000 );
+
+        //This rounds float values properly, eg 13.3399633->13340
+        int origLat = (int) Math.round( orig.latitude * 1000 );
+
+        //This truncates the product, eg 13.3399633 -> 13339
+        int origLon = (int) Math.round( orig.longitude * 1000 );
+
+
+        //int origLon = (int) Math.round( orig.longitude * 1000 );
+        int destLat = (int) Math.round( dest.latitude * 1000 );
+        int destLon = (int) Math.round( dest.longitude * 1000 );
         db.addEntry(origLat, origLon, destLat, destLon, modeOfTransport, distance, duration);
     }
 
     public void clearMarkers(){
-        Log.d("GustafTag", "Clear Markers");
+        for (Marker thisMarker:  MapsActivity.markers){
+            thisMarker.remove();
+       }
+       MapsActivity.markers.clear();
+
     }
 
-    /*STUB
-     * Add reference to map. If necessary, move method to MapsActivity*/
-    public void addMarkerMarkers(LatLng coordinate, int transportMode){
-        Log.d("GustafTag", "Add marker");
-    }
 
-    /*STUB - SAVE RESULTS TO DB
+
+    /*
      * The location is rounded to three decimals by multiplying the coordinates by 1000 and
      * converting to integer. Rounding a float will give unpredictable numerical side effects.
      *
      */
     public void getDirectionsFromUrl(LatLng orig, LatLng dest, String modeOfTransport, DBHelper db) {
-        Log.d("GustafTag", "In getDirectionsFromUrl");
-        StringBuilder sb;
-        sb = new StringBuilder();
-
+        StringBuilder sb = new StringBuilder();
         String apiKey = BuildConfig.DirectionsApiKey;
         String url;
-        int roundedOrigLat = (int) (orig.latitude * 1000);
-        int roundedOrigLon = (int) (orig.longitude * 1000);
-        int roundedDestLat = (int) (dest.latitude * 1000);
-        int roundedDestLon = (int) (dest.longitude * 1000);
+        int roundedOrigLat = (int) Math.round(orig.latitude * 1000);
+        int roundedOrigLon = (int) Math.round(orig.longitude * 1000);
+        int roundedDestLat = (int) Math.round(dest.latitude * 1000);
+        int roundedDestLon = (int) Math.round(dest.longitude * 1000);
 
         sb.append("https://maps.googleapis.com/maps/api/directions/json");
         sb.append("?origin=" + (float) (roundedOrigLat) / 1000 + "," + (float) (roundedOrigLon) / 1000);
@@ -132,7 +144,8 @@ public class TravelTimeHandler {
         url = sb.toString();
         Log.d("GustafTag", url);
 
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 int[] results = readDirectionsFromJson(response);
@@ -140,10 +153,8 @@ public class TravelTimeHandler {
                 getShortestDirectionFromDb(orig, dest, db);
             }
         }, new Response.ErrorListener() {
-
             @Override
             public void onErrorResponse(VolleyError error) {
-                // TODO: Handle error
             }
         });
         Context context = MapsActivity.getAppContext();

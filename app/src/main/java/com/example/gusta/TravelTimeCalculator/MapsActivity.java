@@ -2,6 +2,7 @@ package com.example.gusta.TravelTimeCalculator;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.LinearGradient;
 import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -23,7 +24,9 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -31,7 +34,9 @@ import com.google.android.gms.tasks.Task;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -42,7 +47,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-    private GoogleMap mMap;
+    public GoogleMap mMap;//TEST
     private static final String TAG = MapsActivity.class.getSimpleName();
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     private boolean mLocationPermissionGranted;
@@ -57,8 +62,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Location mLastKnownLocation;
 
+    public static List<Marker> markers = new ArrayList<Marker>();
+
+    public static LatLng truncatedCenter;
+
     /* FOR NOW, THE APP FOCUSES ON DURATION */
-    TravelTimeHandler tth = new TravelTimeHandler("Duration");
+    TravelTimeHandler tth = new TravelTimeHandler("Duration", mMap);
     DBHelper mydb;
 
     @Override
@@ -66,21 +75,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         mydb = new DBHelper(this);
-        final Button scanButton = findViewById(R.id.clear_button);
         appContext = getApplicationContext();
 
-        //TODO replace button with mMap.onCameraChangeListener
-        scanButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                LatLng cameraTarget = mMap.getCameraPosition().target;
-                if(cameraTarget == null){
-                    Log.d("GustafTag","cameraTarget is null");
-                } else {
-                    tth.refreshDirections(cameraTarget, mydb);
-                    //tth.getDirectionsFromUrl(cameraTarget);
-                }
-            }
-        });
         // Construct a GeoDataClient.
         mGeoDataClient = Places.getGeoDataClient(this);
 
@@ -117,21 +113,104 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Get the current location of the device and set the position of the map.
         getDeviceLocation();
 
+        Marker centerMarker = mMap.addMarker(new MarkerOptions()
+               // .position(mMap.getCameraPosition().target)
+                .position(new LatLng(55.6, 13))
+                .title("Center")
+                .snippet("Center is here!"));
+        centerMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.icons8target64));
+
+
+
         mMap.setOnCameraMoveListener(new GoogleMap.OnCameraMoveListener() {
             @Override
             public void onCameraMove() {
                 tth.refreshDirections(mMap.getCameraPosition().target, mydb);
+                truncatedCenter = new LatLng(
+                        (Math.round(mMap.getCameraPosition().target.latitude*1000.0) / 1000.0),
+                        (Math.round(mMap.getCameraPosition().target.longitude*1000.0) / 1000.0)
+                );
+
+                //TODO CLEAR ALL MARKERS
+                tth.clearMarkers();
+                //TODO SEARCH DB FOR ALL EXISTING DIRECTIOS
+
+                centerMarker.setPosition(truncatedCenter);
+                ArrayList<ArrayList<Integer>> directionList = mydb.getCoordinatePairsForPosition(
+                        (int) Math.round(truncatedCenter.latitude * 1000),
+                        (int) Math.round(truncatedCenter.longitude *1000));
+                for(ArrayList<Integer> thisCoordinate: directionList) {
+                    //Search best option in database
+                    mydb.getShortestDistanceOrDuration(
+                            thisCoordinate.get(0),
+                            thisCoordinate.get(1),
+                            (int) Math.round(truncatedCenter.latitude * 1000),
+                            (int) Math.round(truncatedCenter.longitude * 1000),
+                            "Duration");
+                    //Add marker
+                    LatLng truncatedPoint = new LatLng(
+                            (thisCoordinate.get(0) / 1000.0),
+                            (thisCoordinate.get(1) / 1000.0));
+                    Marker marker = mMap.addMarker(new MarkerOptions().position(truncatedPoint));
+                    MapsActivity.markers.add(marker);
+                    int [] results = tth.getShortestDirectionFromDb(truncatedPoint, mMap.getCameraPosition().target, mydb);
+                }
             }
         });
 
         mMap.setOnMapClickListener(new OnMapClickListener() {
             @Override
             public void onMapClick(LatLng point) {
-                Log.d("GustafTag", "Map tapped: " + point.toString());
                 tth.scanDirectionsForTap(point, mMap.getCameraPosition().target, mydb);
+                LatLng truncatedPoint = new LatLng(
+                        (Math.round(point.latitude*1000.0) / 1000.0),
+                        (Math.round(point.longitude*1000.0) / 1000.0)
+                );
+
+                Marker marker = mMap.addMarker(new MarkerOptions().position(truncatedPoint));
+                MapsActivity.markers.add(marker);
+                tth.getShortestDirectionFromDb(point, mMap.getCameraPosition().target, mydb);
             }
         });
+    }
 
+    public void updateMarker(LatLng orig, LatLng dest, int bestValue, String bestMode){
+        //First, tell which point is related to the marker
+        LatLng truncatedPoint;
+        if(orig.equals(truncatedCenter)) {
+            truncatedPoint = new LatLng(
+                    (Math.round(dest.latitude*1000.0) / 1000.0),
+                    (Math.round(dest.longitude*1000.0) / 1000.0));
+        } else {
+            truncatedPoint = new LatLng(
+                    (Math.round(orig.latitude * 1000.0) / 1000.0),
+                    (Math.round(orig.longitude * 1000.0) / 1000.0));
+        }
+        for(Marker thisMarker: MapsActivity.markers){
+            //CHECK if the marker coordinate match
+            //Add information about best mode and best value
+            thisMarker.showInfoWindow();
+            if(truncatedPoint.equals(thisMarker.getPosition()))
+            {
+                thisMarker.setTag(bestMode);
+                thisMarker.setTitle( String.valueOf(bestValue));
+                thisMarker.showInfoWindow();
+                switch(bestMode) {
+                    case "BICYCLING":
+                        thisMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.icons8bicycle24));
+                        break;
+                    case "DRIVING":
+                        thisMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.icons8car24));
+                        break;
+                    case "TRANSIT":
+                        thisMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.icons8bus24));
+                        break;
+                    case "WALKING":
+                        thisMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.icons84running24));
+                        break;
+                }
+            }
+        }
     }
 
     /**
@@ -148,7 +227,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 == PackageManager.PERMISSION_GRANTED) {
             mLocationPermissionGranted = true;
         } else {
-
             ActivityCompat.requestPermissions(this,
                     new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
                     PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
@@ -184,7 +262,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mLocationPermissionGranted = false;
         switch (requestCode) {
             case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     mLocationPermissionGranted = true;

@@ -7,6 +7,13 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
+import com.google.android.gms.maps.model.LatLng;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 // https://www.tutorialspoint.com/android/android_sqlite_database.htm
 //public class DBHelper extends SQLiteOpenHelper {
 public class DBHelper extends SQLiteOpenHelper {
@@ -44,7 +51,6 @@ public class DBHelper extends SQLiteOpenHelper {
     public void addEntry(int origLat, int origLon, int destLat, int destLon, String modeOfTransport,
                          int distance, int duration){
         SQLiteDatabase db = this.getWritableDatabase();
-
         int coordinatesExistInDb = checkIfCoordinateExists(origLat, origLon, destLat, destLon);
 
         String distanceMode = "";
@@ -243,9 +249,52 @@ public class DBHelper extends SQLiteOpenHelper {
         } catch (Exception ex) {
             Log.d("GustafTag", ex.getMessage());
         }
-        Log.d("GustafTag", tableString);
+        //Log.d("GustafTag", tableString);
         db.close();
     }
+
+    ArrayList<ArrayList<Integer>> getCoordinatePairsForPosition(int pointLat, int pointLon){
+        ArrayList<ArrayList<Integer>> returnList = new ArrayList<ArrayList<Integer>>();
+
+        Cursor queryCursor;
+        SQLiteDatabase db = this.getWritableDatabase();
+        //Query all entries for dest with point as orig
+        String[] columns = {TABLE_DESTLAT, TABLE_DESTLON};
+        queryCursor = db.query(DB_TABLE_NAME, columns,
+                "origLat=" + pointLat + " AND origLon=" + pointLon,
+                null, null, null, null);
+        if (queryCursor.moveToFirst()) {
+            String[] columnNames = queryCursor.getColumnNames();
+            do {
+                ArrayList<Integer> x = new ArrayList<Integer>();
+                for (String name: columnNames) {
+                    x.add(queryCursor.getInt(queryCursor.getColumnIndex(name)));
+                }
+                returnList.add(x);
+
+            } while (queryCursor.moveToNext());
+        }
+        //queryCursor.close();
+        //Query all entries with point as dest
+        String[] columnsReversed = {TABLE_ORIGLAT, TABLE_ORIGLON};
+        queryCursor = db.query(DB_TABLE_NAME, columnsReversed,
+                "destLat=" + pointLat + " AND destLon=" + pointLon,
+                null, null, null, null);
+        if (queryCursor.moveToFirst()) {
+            String[] columnNames = queryCursor.getColumnNames();
+            do {
+                ArrayList<Integer> y = new ArrayList<Integer>();
+                for (String name: columnNames) {
+                    y.add(queryCursor.getInt(queryCursor.getColumnIndex(name)));
+                }
+                returnList.add(y);
+            } while (queryCursor.moveToNext());
+
+        }
+        queryCursor.close();
+        return returnList;
+    }
+
 
     /* This method clears the test database  */
     public void clearTestDatabase(){
