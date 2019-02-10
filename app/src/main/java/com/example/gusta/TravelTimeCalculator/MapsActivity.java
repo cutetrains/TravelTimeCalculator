@@ -1,6 +1,7 @@
 package com.example.gusta.TravelTimeCalculator;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.LinearGradient;
 import android.location.Location;
@@ -66,6 +67,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public static LatLng truncatedCenter;
 
+    private Button settingsButton;
+
     /* FOR NOW, THE APP FOCUSES ON DURATION */
     TravelTimeHandler tth = new TravelTimeHandler("Duration", mMap);
     DBHelper mydb;
@@ -91,6 +94,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        settingsButton = (Button) findViewById(R.id.settings_button);
+        settingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openSettingsActivity();
+            }
+        });
+    }
+
+    public void openSettingsActivity(){
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
     }
 
     /**
@@ -131,9 +147,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         (Math.round(mMap.getCameraPosition().target.longitude*1000.0) / 1000.0)
                 );
 
-                //TODO CLEAR ALL MARKERS
                 tth.clearMarkers();
-                //TODO SEARCH DB FOR ALL EXISTING DIRECTIOS
 
                 centerMarker.setPosition(truncatedCenter);
                 ArrayList<ArrayList<Integer>> directionList = mydb.getCoordinatePairsForPosition(
@@ -141,19 +155,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         (int) Math.round(truncatedCenter.longitude *1000));
                 for(ArrayList<Integer> thisCoordinate: directionList) {
                     //Search best option in database
-                    mydb.getShortestDistanceOrDuration(
+                    /*mydb.getShortestDistanceOrDuration(
                             thisCoordinate.get(0),
                             thisCoordinate.get(1),
                             (int) Math.round(truncatedCenter.latitude * 1000),
                             (int) Math.round(truncatedCenter.longitude * 1000),
-                            "Duration");
+                            "Duration");*/
                     //Add marker
                     LatLng truncatedPoint = new LatLng(
                             (thisCoordinate.get(0) / 1000.0),
                             (thisCoordinate.get(1) / 1000.0));
                     Marker marker = mMap.addMarker(new MarkerOptions().position(truncatedPoint));
                     MapsActivity.markers.add(marker);
-                    int [] results = tth.getShortestDirectionFromDb(truncatedPoint, mMap.getCameraPosition().target, mydb);
+                    //This will update the markers
+                    tth.getShortestDirectionFromDb(truncatedPoint, mMap.getCameraPosition().target, mydb);
                 }
             }
         });

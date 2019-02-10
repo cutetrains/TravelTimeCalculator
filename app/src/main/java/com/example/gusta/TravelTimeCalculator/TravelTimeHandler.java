@@ -115,9 +115,8 @@ public class TravelTimeHandler {
     public void clearMarkers(){
         for (Marker thisMarker:  MapsActivity.markers){
             thisMarker.remove();
-       }
-       MapsActivity.markers.clear();
-
+        }
+        MapsActivity.markers.clear();
     }
 
 

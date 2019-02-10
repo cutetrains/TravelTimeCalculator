@@ -9,8 +9,8 @@
         android:layout_height="wrap_content"
         android:text="Button" />
 
-    <com.google.android.gms.maps.MapView
-        android:id="@+id/mapView"
+    <TextView
+        android:id="@+id/settingsTesxtView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 </LinearLayout>
