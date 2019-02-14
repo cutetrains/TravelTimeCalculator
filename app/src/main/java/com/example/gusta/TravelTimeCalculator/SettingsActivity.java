@@ -3,12 +3,14 @@ package com.example.gusta.TravelTimeCalculator;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
@@ -39,6 +41,47 @@ import java.util.List;
 public class SettingsActivity extends AppCompatPreferenceActivity {
 
     /**
+     * Copies all parameters to mapsActivity
+     * comparisonMode
+     * currency
+     * costEmissions
+     * costTime
+     * bicycleStartStopTime
+     * drivingStartStopTime
+     * drivingCostkm
+     * drivingEmissions
+     * transitCost
+     * transitEmissions
+     *
+     */
+    private static void updateSettingsToMain(){
+        SharedPreferences sharedPreferences =
+                PreferenceManager.getDefaultSharedPreferences(MapsActivity.getAppContext());
+
+        int comparisonMode=-1;
+        TravelTimeHandler.settingComparisonMode = sharedPreferences.getInt("general_compare_mode", comparisonMode);
+        String currency="";
+        TravelTimeHandler.settingCurrency = sharedPreferences.getString("general_currency", currency);
+        int costEmissions = -1;
+        TravelTimeHandler.settingCostEmissions = sharedPreferences.getInt("general_cost_emission", costEmissions);
+        int costTime = -1;
+        TravelTimeHandler.settingCostTime = sharedPreferences.getInt("general_cost_time", costTime);
+        int bicycleStartStopTime = -1;
+        TravelTimeHandler.settingBicyclingStartStopTime = sharedPreferences.getInt("travel_mode_bicycling_start_stop", bicycleStartStopTime);
+        int drivingStartStopTime = -1;
+        TravelTimeHandler.settingDrivingStartStopTime = sharedPreferences.getInt("travel_mode_driving_start_stop", drivingStartStopTime);
+        int drivingCostkm = -1;
+        TravelTimeHandler.settingDrivingCostkm = sharedPreferences.getInt("travel_mode_driving_cost", drivingCostkm);
+        int drivingEmissions = -1;
+        TravelTimeHandler.settingDrivingEmission = sharedPreferences.getInt("travel_mode_driving_emissions", drivingEmissions);
+        int transitCost = -1;
+        TravelTimeHandler.settingTransitCost = sharedPreferences.getInt("travel_mode_transit_cost", transitCost);
+        int transitEmissions = -1;
+        TravelTimeHandler.settingTransitEmissions = sharedPreferences.getInt("travel_mode_transit_emissions", transitEmissions);
+
+    }
+
+    /**
      * A preference value change listener that updates the preference's summary
      * to reflect its new value.
      */
@@ -47,9 +90,9 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         public boolean onPreferenceChange(Preference preference, Object value) {
             String stringValue = value.toString();
 
-            Log.d("GustafTag", "Preference Changed! " + preference.toString() );
+            Log.d("GustafTag", "Preference Changed! preference: " + preference.toString() );
             if (preference instanceof ListPreference) {
-                Log.d("GustafTag", "Entering ListPreference with " +stringValue );
+                Log.d("GustafTag", "Entering ListPreference with " + stringValue );
                 // For list preferences, look up the correct display value in
                 // the preference's 'entries' list.
                 ListPreference listPreference = (ListPreference) preference;
@@ -60,38 +103,27 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                         index >= 0
                                 ? listPreference.getEntries()[index]
                                 : null);
+                Log.d("GustafTag", "stringValue: "+ stringValue);
+                if(stringValue == "Cost" || stringValue == "Distancce" || stringValue =="Duration") {
+                    Log.d("GustafTag", "update with stringValue: ");
+                    updateSettingsToMain();
 
-            } else if (preference instanceof RingtonePreference) {
-                Log.d("GustafTag", "Entering RingtonePreference with " + stringValue );
-                // For ringtone preferences, look up the correct display value
-                // using RingtoneManager.
-                if (TextUtils.isEmpty(stringValue)) {
-                    // Empty values correspond to 'silent' (no ringtone).
-                    preference.setSummary(R.string.pref_ringtone_silent);
-
-                } else {
-                    Ringtone ringtone = RingtoneManager.getRingtone(
-                            preference.getContext(), Uri.parse(stringValue));
-
-                    if (ringtone == null) {
-                        // Clear the summary if there was a lookup error.
-                        preference.setSummary(null);
-                    } else {
-                        // Set the summary to reflect the new ringtone display
-                        // name.
-                        String name = ringtone.getTitle(preference.getContext());
-                        preference.setSummary(name);
-                    }
                 }
+            } else if (preference instanceof EditTextPreference) {
+                Log.d("GustafTag", "Entering EditTextPreference with " + stringValue );
+                preference.setSummary(stringValue);
 
             } else {
                 // For all other preferences, set the summary to the value's
                 // simple string representation.
+                Log.d("GustafTag", "Set summary to: "+stringValue);
                 preference.setSummary(stringValue);
             }
             return true;
         }
     };
+
+
 
     /**
      * Helper method to determine if the device has an extra-large screen. For
@@ -113,14 +145,17 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
      */
     private static void bindPreferenceSummaryToValue(Preference preference) {
         // Set the listener to watch for value changes.
-        preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
+        if(preference != null){
+            preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
 
-        // Trigger the listener immediately with the preference's
-        // current value.
-        sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
-                PreferenceManager
-                        .getDefaultSharedPreferences(preference.getContext())
-                        .getString(preference.getKey(), ""));
+            // Trigger the listener immediately with the preference's
+            // current value.
+            sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
+                    PreferenceManager
+                            .getDefaultSharedPreferences(preference.getContext())
+                            .getString(preference.getKey(), ""));
+        }
+
     }
 
     @Override
@@ -199,6 +234,10 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             bindPreferenceSummaryToValue(findPreference("example_list"));
             bindPreferenceSummaryToValue(findPreference("general_compare_mode"));
 
+            bindPreferenceSummaryToValue(findPreference("general_currency"));
+            bindPreferenceSummaryToValue(findPreference("general_cost_emission"));
+            bindPreferenceSummaryToValue(findPreference("general_cost_time"));
+
         }
 
         @Override
@@ -229,6 +268,12 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             // updated to reflect the new value, per the Android Design
             // guidelines.
             bindPreferenceSummaryToValue(findPreference("notifications_new_message_ringtone"));
+            bindPreferenceSummaryToValue(findPreference("travel_mode_bicycle_start_stop"));
+            bindPreferenceSummaryToValue(findPreference("travel_mode_driving_start_stop"));
+            bindPreferenceSummaryToValue(findPreference("travel_mode_driving_cost"));
+            bindPreferenceSummaryToValue(findPreference("travel_mode_driving_emissions"));
+            bindPreferenceSummaryToValue(findPreference("travel_mode_transit_cost"));
+            bindPreferenceSummaryToValue(findPreference("travel_mode_transit_emissions"));
         }
 
         @Override

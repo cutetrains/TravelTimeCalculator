@@ -43,11 +43,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private static Context appContext;
 
-    public static Context getAppContext() {
-        return appContext;
-    }
-
-
     public GoogleMap mMap;//TEST
     private static final String TAG = MapsActivity.class.getSimpleName();
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
@@ -66,6 +61,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public static List<Marker> markers = new ArrayList<Marker>();
 
     public static LatLng truncatedCenter;
+
+
 
     private Button settingsButton;
 
@@ -104,9 +101,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    public void openSettingsActivity(){
+    public void openSettingsActivity() {
         Intent intent = new Intent(this, SettingsActivity.class);
         startActivity(intent);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d("GustafTag", "Resuming");
     }
 
     /**
@@ -130,12 +133,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         getDeviceLocation();
 
         Marker centerMarker = mMap.addMarker(new MarkerOptions()
-               // .position(mMap.getCameraPosition().target)
+                // .position(mMap.getCameraPosition().target)
                 .position(new LatLng(55.6, 13))
                 .title("Center")
                 .snippet("Center is here!"));
         centerMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.icons8target64));
-
 
 
         mMap.setOnCameraMoveListener(new GoogleMap.OnCameraMoveListener() {
@@ -143,8 +145,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onCameraMove() {
                 tth.refreshDirections(mMap.getCameraPosition().target, mydb);
                 truncatedCenter = new LatLng(
-                        (Math.round(mMap.getCameraPosition().target.latitude*1000.0) / 1000.0),
-                        (Math.round(mMap.getCameraPosition().target.longitude*1000.0) / 1000.0)
+                        (Math.round(mMap.getCameraPosition().target.latitude * 1000.0) / 1000.0),
+                        (Math.round(mMap.getCameraPosition().target.longitude * 1000.0) / 1000.0)
                 );
 
                 tth.clearMarkers();
@@ -152,8 +154,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 centerMarker.setPosition(truncatedCenter);
                 ArrayList<ArrayList<Integer>> directionList = mydb.getCoordinatePairsForPosition(
                         (int) Math.round(truncatedCenter.latitude * 1000),
-                        (int) Math.round(truncatedCenter.longitude *1000));
-                for(ArrayList<Integer> thisCoordinate: directionList) {
+                        (int) Math.round(truncatedCenter.longitude * 1000));
+                for (ArrayList<Integer> thisCoordinate : directionList) {
                     //Search best option in database
                     /*mydb.getShortestDistanceOrDuration(
                             thisCoordinate.get(0),
@@ -178,8 +180,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onMapClick(LatLng point) {
                 tth.scanDirectionsForTap(point, mMap.getCameraPosition().target, mydb);
                 LatLng truncatedPoint = new LatLng(
-                        (Math.round(point.latitude*1000.0) / 1000.0),
-                        (Math.round(point.longitude*1000.0) / 1000.0)
+                        (Math.round(point.latitude * 1000.0) / 1000.0),
+                        (Math.round(point.longitude * 1000.0) / 1000.0)
                 );
 
                 Marker marker = mMap.addMarker(new MarkerOptions().position(truncatedPoint));
@@ -189,28 +191,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    public void updateMarker(LatLng orig, LatLng dest, int bestValue, String bestMode){
+    public void updateMarker(LatLng orig, LatLng dest, int bestValue, String bestMode) {
         //First, tell which point is related to the marker
         LatLng truncatedPoint;
-        if(orig.equals(truncatedCenter)) {
+        if (orig.equals(truncatedCenter)) {
             truncatedPoint = new LatLng(
-                    (Math.round(dest.latitude*1000.0) / 1000.0),
-                    (Math.round(dest.longitude*1000.0) / 1000.0));
+                    (Math.round(dest.latitude * 1000.0) / 1000.0),
+                    (Math.round(dest.longitude * 1000.0) / 1000.0));
         } else {
             truncatedPoint = new LatLng(
                     (Math.round(orig.latitude * 1000.0) / 1000.0),
                     (Math.round(orig.longitude * 1000.0) / 1000.0));
         }
-        for(Marker thisMarker: MapsActivity.markers){
+        for (Marker thisMarker : MapsActivity.markers) {
             //CHECK if the marker coordinate match
             //Add information about best mode and best value
             thisMarker.showInfoWindow();
-            if(truncatedPoint.equals(thisMarker.getPosition()))
-            {
+            if (truncatedPoint.equals(thisMarker.getPosition())) {
                 thisMarker.setTag(bestMode);
-                thisMarker.setTitle( String.valueOf(bestValue));
+                thisMarker.setTitle(String.valueOf(bestValue));
                 thisMarker.showInfoWindow();
-                switch(bestMode) {
+                switch (bestMode) {
                     case "BICYCLING":
                         thisMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.icons8bicycle24));
                         break;
@@ -226,6 +227,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         }
+    }
+
+    public static Context getAppContext() {
+        return appContext;
     }
 
     /**

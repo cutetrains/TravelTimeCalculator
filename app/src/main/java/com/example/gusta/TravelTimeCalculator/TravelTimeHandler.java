@@ -21,6 +21,23 @@ public class TravelTimeHandler {
 
     public String durationOrDistance;
     public GoogleMap thisMap;//TEMP
+
+    /**
+     * 1 Cost
+     * 2 Distance
+     * 3 Emissions
+     */
+    public static int settingComparisonMode;
+    public static String settingCurrency;
+    public static int settingCostEmissions;
+    public static int settingCostTime;
+    public static int settingBicyclingStartStopTime;
+    public static int settingDrivingStartStopTime;
+    public static int settingDrivingCostkm;
+    public static int settingDrivingEmission;
+    public static int settingTransitCost;
+    public static int settingTransitEmissions;
+
     /*Distance or Duration*/
     public TravelTimeHandler(String durOrDist, GoogleMap gmap) {//TEMP
 
@@ -28,8 +45,6 @@ public class TravelTimeHandler {
         thisMap = gmap;//TEMP
     }
 
-    /*STUB
-    * This method is called when the camera target is changed.*/
     public void refreshDirections(LatLng orig, DBHelper db) {
         //Clear current markers
 
@@ -85,6 +100,7 @@ public class TravelTimeHandler {
             }
         }
         if(numberOfNulls == 0) {
+            //TODO Dirty trick. Fix!
             MapsActivity mActivity= new MapsActivity();
             //We don't know if we're looking in the direct or reversed direction.
             // So provide both and let updateMarker tell which to look for
@@ -118,8 +134,6 @@ public class TravelTimeHandler {
         }
         MapsActivity.markers.clear();
     }
-
-
 
     /*
      * The location is rounded to three decimals by multiplying the coordinates by 1000 and
@@ -156,6 +170,8 @@ public class TravelTimeHandler {
             public void onErrorResponse(VolleyError error) {
             }
         });
+
+        //Context context = MapsActivity.getAppContext();
         Context context = MapsActivity.getAppContext();
         RequestQueue queue = Volley.newRequestQueue(context);
 
