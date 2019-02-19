@@ -156,7 +156,16 @@ public class DBHelper extends SQLiteOpenHelper {
         }
     }
 
-    //Returns all distances and durations for a coordinate.
+    /*Type is a string of either "Distance" or "Duration". */
+    public int[] getCheapestTravelMode(int origLat, int origLon, int destLat, int destLon,
+                                       int emissionCost, int timeCost, int bicyclingStartStopTime,
+                                       int drivingStartStopTime, int drivingCost, int drivingEmissions,
+                                       int tranistCost, int transitEmissions) {
+        return new int[] {-1, -1};
+
+    }
+
+        //Returns all distances and durations for a coordinate.
     public int[] getAllDistanceDuration(int origLat, int origLon, int destLat, int destLon){
         Cursor queryCursor;
         SQLiteDatabase db = this.getWritableDatabase();
