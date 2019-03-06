@@ -1,5 +1,7 @@
 package com.example.gusta.TravelTimeCalculator;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.android.volley.Request;
@@ -15,11 +17,8 @@ import com.google.android.gms.maps.model.Marker;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Map;
-
 public class TravelTimeHandler {
 
-    public String durationOrDistance;
     public GoogleMap thisMap;//TEMP
 
     /**
@@ -39,19 +38,13 @@ public class TravelTimeHandler {
     public static int settingTransitEmissions;
 
     /*Distance or Duration*/
-    public TravelTimeHandler(String durOrDist, GoogleMap gmap) {//TEMP
-
-        durationOrDistance = durOrDist;
+    public TravelTimeHandler(GoogleMap gmap) {//TEMP
         thisMap = gmap;//TEMP
     }
 
     public void refreshDirections(LatLng orig, DBHelper db) {
-        //Clear current markers
-
     }
 
-    /*STUB
-     * This method is called when the user taps the map.*/
     public void scanDirectionsForTap(LatLng orig, LatLng dest, DBHelper db){
         int [] results = getShortestDirectionFromDb(orig, dest, db);
         if( results[1] == -1 ) {
@@ -71,7 +64,8 @@ public class TravelTimeHandler {
         int destLat = (int) Math.round( dest.latitude * 1000 );
         int destLon = (int) Math.round( dest.longitude * 1000 );
 
-        int [] results = db.getShortestDistanceOrDuration(origLat, origLon, destLat, destLon, durationOrDistance);
+        String unit = "";
+        int [] results = db.getBestTravelMode(origLat, origLon, destLat, destLon, settingComparisonMode);
         String resultMode ="";
 
         switch(results[1]) {
@@ -82,10 +76,10 @@ public class TravelTimeHandler {
                 resultMode = "DRIVING";
                 break;
             case 2:
-                resultMode = "WALKING";
+                resultMode = "TRANSIT";
                 break;
             case 3:
-                resultMode = "TRANSIT";
+                resultMode = "WALKING";
                 break;
             default:
                 resultMode = "N/A";
@@ -99,18 +93,41 @@ public class TravelTimeHandler {
                 numberOfNulls ++;
             }
         }
+
+        if(settingComparisonMode == 1){
+            unit = " "+ settingCurrency;
+        } else if(settingComparisonMode == 2){
+            unit = " m";
+        } else {
+            unit = " s";
+        }
+
         if(numberOfNulls == 0) {
             //TODO Dirty trick. Fix!
             MapsActivity mActivity= new MapsActivity();
             //We don't know if we're looking in the direct or reversed direction.
             // So provide both and let updateMarker tell which to look for
             // (the latlng that isn't at the center).
-            mActivity.updateMarker(orig, dest, results[0], resultMode);
+            mActivity.updateMarker(orig, dest, results[0], unit, resultMode);
         }
         return results;
     }
 
-
+    //TODO Delete later?
+    public void updateSettings(){
+        SharedPreferences sharedPreferences =
+                PreferenceManager.getDefaultSharedPreferences(MapsActivity.getAppContext());
+        settingComparisonMode = Integer.valueOf(sharedPreferences.getString("general_compare_mode", "-1"));
+        settingCurrency = sharedPreferences.getString("general_currency", "NAN");
+        settingCostEmissions = Integer.valueOf(sharedPreferences.getString("general_cost_emission", "-1"));
+        settingCostTime = Integer.valueOf(sharedPreferences.getString("general_cost_time", "-1"));
+        settingBicyclingStartStopTime = Integer.valueOf(sharedPreferences.getString("travel_mode_bicycling_start_stop", "-1"));
+        settingDrivingStartStopTime = Integer.valueOf(sharedPreferences.getString("travel_mode_driving_start_stop","-1"));
+        settingDrivingCostkm = Integer.valueOf(sharedPreferences.getString("travel_mode_driving_cost", "-1"));
+        settingDrivingEmission = Integer.valueOf(sharedPreferences.getString("travel_mode_driving_emissions", "-1"));
+        settingTransitCost = Integer.valueOf(sharedPreferences.getString("travel_mode_transit_cost", "-1"));
+        settingTransitEmissions = Integer.valueOf(sharedPreferences.getString("travel_mode_transit_emissions", "-1"));
+    }
 
     public void saveDirectionsToDb(LatLng orig, LatLng dest, String modeOfTransport,
                                    int distance, int duration, DBHelper db){

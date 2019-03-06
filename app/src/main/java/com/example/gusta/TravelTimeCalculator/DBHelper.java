@@ -2,17 +2,13 @@ package com.example.gusta.TravelTimeCalculator;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteDatabase;
+import android.preference.PreferenceManager;
 import android.util.Log;
-
-import com.google.android.gms.maps.model.LatLng;
-
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 // https://www.tutorialspoint.com/android/android_sqlite_database.htm
 //public class DBHelper extends SQLiteOpenHelper {
@@ -32,7 +28,6 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String TABLE_WALKING_DISTANCE = "walkingDistance";
     public static final String TABLE_WALKING_DURATION = "walkingDuration";
     public static final String TABLE_CONSTRAINT_COORDINATE = "UC_coordinates";
-    //SQLiteDatabase db;
 
     public DBHelper(Context context) {
         super(context, DATABASE_NAME , null, 1);
@@ -43,7 +38,6 @@ public class DBHelper extends SQLiteOpenHelper {
         // TODO Auto-generated method stub
         db.execSQL("DROP TABLE IF EXISTS distanceDurationDb");
         onCreate(db);
-        Log.d("GustafTag", "In DBHelper:onUpgrade");
     }
 
     //TODO add method for printing db to console
@@ -105,64 +99,138 @@ public class DBHelper extends SQLiteOpenHelper {
         db.close();
     }
 
-    /*Type is a string of either "Distance" or "Duration". */
-    public int[] getShortestDistanceOrDuration(int origLat, int origLon, int destLat, int destLon, String type){
+    /* ComparisonMode is
+    *  0 Cost - not valid!
+    *  1 Distance
+    *  2 Duration*/
+    public int[] getBestTravelMode(int origLat, int origLon, int destLat, int destLon, int comparisonMode){
         Cursor queryCursor;
         SQLiteDatabase db = this.getWritableDatabase();
-        int shortestMode = -1;
-        int shortestValue = Integer.MAX_VALUE;
-        int typeIsDuration = ( type == "Duration" ? 1 : 0 ) ;
+        int bestMode = -1;
+        int bestValue = Integer.MAX_VALUE;
+        int start;
+        int end;
+        if(comparisonMode == 1){ //Cost
+            start = 0;
+            end = 7;
+        } else if(comparisonMode == 2) { // Distance
+            start = 0;
+            end = 3;
+        } else {// //Duration
+            start = 4;
+            end = 7;
+        }
+
         try{
-            String[] columns = {TABLE_BICYCLING_DISTANCE, TABLE_BICYCLING_DURATION,
-                    TABLE_DRIVING_DISTANCE, TABLE_DRIVING_DURATION, TABLE_TRANSIT_DISTANCE,
-                    TABLE_TRANSIT_DURATION, TABLE_WALKING_DISTANCE, TABLE_WALKING_DURATION};
-            queryCursor = db.query(DB_TABLE_NAME, columns,
-                    "origLat=" + origLat + " AND origLon=" + origLon + " AND destLat=" +
-                            destLat + " AND destLon="+destLon,
-                    null, null, null, null);
-            if(queryCursor.moveToFirst()){
-                for(int iii = 0; iii< columns.length; iii++){
-                    /* typeIsDuration = 0 (distance)
-                     * iii  Mod 2
-                     * 0   0       0   Match
-                     * 1   1       0     -
-                     *
-                     * typeIsDuration= = 1 (duration)
-                     * 0   0       0     -
-                     * 1   1       1   Match
-                     *
-                      * */
-                    if(iii % 2 == typeIsDuration){
-                        if(queryCursor.getInt(iii) != 0) {
-                            if (queryCursor.getInt(iii) < shortestValue) {
-                                shortestValue = queryCursor.getInt(iii);
-                                shortestMode = iii/2;
-                            }
+            String[] columns = {TABLE_BICYCLING_DISTANCE, TABLE_DRIVING_DISTANCE,
+                                TABLE_TRANSIT_DISTANCE, TABLE_WALKING_DISTANCE,
+                                TABLE_BICYCLING_DURATION, TABLE_DRIVING_DURATION,
+                                TABLE_TRANSIT_DURATION, TABLE_WALKING_DURATION};
+
+            int coordinateIsNotReversed = checkIfCoordinateExists(origLat, origLon, destLat, destLon);
+
+            if (coordinateIsNotReversed == 1){
+                queryCursor = db.query(DB_TABLE_NAME, columns,
+                        "origLat=" + origLat + " AND origLon=" + origLon + " AND destLat=" +
+                                destLat + " AND destLon="+destLon,
+                        null, null, null, null);
+            } else {
+                queryCursor = db.query(DB_TABLE_NAME, columns,
+                        "origLat=" + destLat + " AND origLon=" + destLon + " AND destLat=" +
+                                origLat + " AND destLon="+ origLon ,
+                        null, null, null, null);
+            }
+
+            if (queryCursor.moveToFirst()) {
+                for (int iii = start; iii <= end; iii++) {
+                    if (queryCursor.getInt(iii) != 0) {
+                        if (queryCursor.getInt(iii) < bestValue) {
+                            bestValue = queryCursor.getInt(iii);
+                            bestMode = iii - start;
                         }
                     }
                 }
             }
-            queryCursor.close();
+            if(comparisonMode == 1){
+                //Log.d("GustafTag", "Calculating costs!");
+                //for(int iii =0; iii<8; iii++){
+                //    Log.d("GustafTag", String.valueOf(queryCursor.getInt(iii)));
+                //}
+                SharedPreferences sharedPreferences =
+                        PreferenceManager.getDefaultSharedPreferences(MapsActivity.getAppContext());
+                int costEmissions = Integer.valueOf(sharedPreferences.getString("general_cost_emission", "-1"));
+                int costTime = Integer.valueOf(sharedPreferences.getString("general_cost_time", "-1"));
+                int bicyclingStartStopTime = Integer.valueOf(sharedPreferences.getString("travel_mode_bicycling_start_stop", "-1"));
+                int drivingStartStopTime = Integer.valueOf(sharedPreferences.getString("travel_mode_driving_start_stop","-1"));
+                int drivingCostkm = Integer.valueOf(sharedPreferences.getString("travel_mode_driving_cost", "-1"));
+                int drivingEmissionPerkm = Integer.valueOf(sharedPreferences.getString("travel_mode_driving_emissions", "-1"));
+                int transitTicketCost = Integer.valueOf(sharedPreferences.getString("travel_mode_transit_cost", "-1"));
+                int transitEmissions = Integer.valueOf(sharedPreferences.getString("travel_mode_transit_emissions", "-1"));
 
+                int bicyclingDistance = queryCursor.getInt(0);
+                int bicyclingDuration = queryCursor.getInt(4);
+                double bicyclingCost = (bicyclingDuration + bicyclingStartStopTime * 2) * costTime / 3600.0;
+                //Log.d("GustafTag", "Bicycle cost: " + bicyclingCost);
+
+                /*
+                 *   [s + s] * [SEK / h] * [h / s] =SEK
+                  *  [m] * [SEK/km + SEK/kg * g/km] *[km / m] = SEK
+                 */
+                int drivingDistance = queryCursor.getInt(1);
+                int drivingDuration = queryCursor.getInt(5);
+                double drivingCost = ( drivingDuration + drivingStartStopTime * 2) * costTime / 3600.0 +
+                        ( drivingCostkm + costEmissions * drivingEmissionPerkm/1000.0) * drivingDistance / 1000.0 ;
+                //Log.d("GustafTag", "Driving cost: " + drivingCost );
+
+                /* [SEK] + [s * SEK / h *  h / s] + [m * g/ km * SEK/kg *km/m * g/kg] */
+                int transitDistance = queryCursor.getInt(2);
+                int transitDuration = queryCursor.getInt(6);
+
+                double transitCost = transitTicketCost + transitDuration * costTime / 3600.0 +
+                        transitDistance * transitEmissions * costEmissions /1000000.0;
+                //Log.d("GustafTag", "Transit cost: " + transitCost );
+
+                /* [s * SEK/h * h/s] */
+                int walkingDistance = queryCursor.getInt(3);
+                int walkingDuration = queryCursor.getInt(7);
+                double walkingCost = walkingDuration * costTime /3600.0;
+                //Log.d("GustafTag", "Walking cost: " + walkingCost );
+
+                //Compare the costs and return the lowest cost!
+                bestMode = -1;
+                bestValue = 1000000000;
+                if(bicyclingCost < bestValue && bicyclingCost > 0 &&
+                        bicyclingDistance != -1 && bicyclingDuration != -1){
+                    bestValue = (int) bicyclingCost;
+                    bestMode = 0;
+                }
+                if(drivingCost < bestValue && drivingCost > 0 &&
+                        drivingDistance != -1 && drivingDuration != -1){
+                    bestValue = (int) drivingCost;
+                    bestMode = 1;
+                }
+                if(transitCost < bestValue && transitCost > 0 &&
+                        transitDistance != -1 && transitDuration != -1){
+                    bestValue = (int) transitCost;
+                    bestMode = 2;
+                }
+                if(walkingCost < bestValue && drivingCost > 0 &&
+                        walkingDistance != -1 && walkingDuration != -1){
+                    bestValue = (int) walkingCost;
+                    bestMode = 3;
+                }
+            }
+            queryCursor.close();
         }catch(Exception ex){
             Log.d("GustafTag", ex.getMessage());
         }
 
         db.close();//ADDED TO RESOLVE POSSIBLE LOCK ISSUE
-        if(shortestValue == Integer.MAX_VALUE) {
+        if(bestValue == Integer.MAX_VALUE) {
             return new int[] {-1, -1};
         } else {
-            return new int[] {shortestValue, shortestMode};
+            return new int[] {bestValue, bestMode};
         }
-    }
-
-    /*Type is a string of either "Distance" or "Duration". */
-    public int[] getCheapestTravelMode(int origLat, int origLon, int destLat, int destLon,
-                                       int emissionCost, int timeCost, int bicyclingStartStopTime,
-                                       int drivingStartStopTime, int drivingCost, int drivingEmissions,
-                                       int tranistCost, int transitEmissions) {
-        return new int[] {-1, -1};
-
     }
 
         //Returns all distances and durations for a coordinate.

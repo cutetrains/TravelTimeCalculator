@@ -2,8 +2,8 @@ package com.example.gusta.TravelTimeCalculator;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.LinearGradient;
 import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -32,11 +32,8 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -58,16 +55,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private Location mLastKnownLocation;
 
-    public static List<Marker> markers = new ArrayList<Marker>();
+    public static List<Marker> markers = new ArrayList<>();
 
     public static LatLng truncatedCenter;
 
-
+    private SharedPreferences mPreferences;
+    private SharedPreferences.Editor mEditor;
 
     private Button settingsButton;
 
     /* FOR NOW, THE APP FOCUSES ON DURATION */
-    TravelTimeHandler tth = new TravelTimeHandler("Duration", mMap);
+    TravelTimeHandler tth = new TravelTimeHandler( mMap);
     DBHelper mydb;
 
     @Override
@@ -109,7 +107,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onResume() {
         super.onResume();
-        Log.d("GustafTag", "Resuming");
+        //TODO Delete later?
+        tth.updateSettings();
     }
 
     /**
@@ -137,7 +136,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .position(new LatLng(55.6, 13))
                 .title("Center")
                 .snippet("Center is here!"));
-        centerMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.icons8target64));
+        //centerMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.icons8target64));
 
 
         mMap.setOnCameraMoveListener(new GoogleMap.OnCameraMoveListener() {
@@ -156,13 +155,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         (int) Math.round(truncatedCenter.latitude * 1000),
                         (int) Math.round(truncatedCenter.longitude * 1000));
                 for (ArrayList<Integer> thisCoordinate : directionList) {
-                    //Search best option in database
-                    /*mydb.getShortestDistanceOrDuration(
-                            thisCoordinate.get(0),
-                            thisCoordinate.get(1),
-                            (int) Math.round(truncatedCenter.latitude * 1000),
-                            (int) Math.round(truncatedCenter.longitude * 1000),
-                            "Duration");*/
                     //Add marker
                     LatLng truncatedPoint = new LatLng(
                             (thisCoordinate.get(0) / 1000.0),
@@ -187,11 +179,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Marker marker = mMap.addMarker(new MarkerOptions().position(truncatedPoint));
                 MapsActivity.markers.add(marker);
                 tth.getShortestDirectionFromDb(point, mMap.getCameraPosition().target, mydb);
+
             }
         });
     }
 
-    public void updateMarker(LatLng orig, LatLng dest, int bestValue, String bestMode) {
+    public void updateMarker(LatLng orig, LatLng dest, int bestValue, String unit, String bestMode) {
         //First, tell which point is related to the marker
         LatLng truncatedPoint;
         if (orig.equals(truncatedCenter)) {
@@ -206,10 +199,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         for (Marker thisMarker : MapsActivity.markers) {
             //CHECK if the marker coordinate match
             //Add information about best mode and best value
-            thisMarker.showInfoWindow();
+
             if (truncatedPoint.equals(thisMarker.getPosition())) {
                 thisMarker.setTag(bestMode);
-                thisMarker.setTitle(String.valueOf(bestValue));
+
+                //Log.d("GustafTag", String.valueOf(bestValue) + unit);
+
                 thisMarker.showInfoWindow();
                 switch (bestMode) {
                     case "BICYCLING":
@@ -225,7 +220,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         thisMarker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.icons84running24));
                         break;
                 }
+                if(bestValue == 1000000000) {
+                    thisMarker.setTitle("N/A");
+                }else{
+                    thisMarker.setTitle(String.valueOf(bestValue) + unit);
+                }
             }
+            thisMarker.showInfoWindow();
         }
     }
 
